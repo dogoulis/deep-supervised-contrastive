@@ -29,8 +29,11 @@ parser.add_argument('-e', '--epochs', type=int, default=100,
 parser.add_argument('--fp16', type=str, default=None,
                     metavar='fp16', help='Indicator for using mixed precision.')
 
-parser.add_argument('--save_dir', type=str,
-                    metavar='save-dir', help='Save directory path.')
+parser.add_argument('--save_model_dir', type=str,
+                    metavar='save-model-dir', help='Save directory path for model.')
+
+parser.add_argument('--save_back_dir', type=str,
+                    metavar='save-back-dir', help='Save directory path for backbone net.')
 
 parser.add_argument('--name', type=str,
                     metavar='name', help='Experiment name that logs into wandb.')
@@ -155,15 +158,23 @@ def main():
 
     scheduler = None # fix (wether we use or not)
 
-    # directory:
-    save_dir = args.save_dir
-    print(save_dir)
+    # checkpointing - directories:
+    save_model_dir = args.save_model_dir
+    print(save_model_dir)
 
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
 
+    if not os.path.exists(save_model_dir):
+        os.makedirs(save_model_dir)
+    
+    save_backbone_dir = args.save_backbone_dir
+    print(save_backbone_dir)
+
+
+    if not os.path.exists(save_backbone_dir):
+        os.makedirs(save_backbone_dir)
+        
     # define vale for min-loss:
-    min_loss, train_results = float('inf'), []
+    min_loss = float('inf')
     print('Training starts...')
 
     for epoch in range(args.epochs):
@@ -174,7 +185,8 @@ def main():
 
         if train_loss < min_loss:
             min_loss = train_loss.copy()
-            torch.save(model.state_dict(), os.path.join(save_dir, 'best-ckpt.pt'))
+            torch.save(model.state_dict(), os.path.join(save_model_dir, 'best-model-ckpt.pt'))
+            torch.save(model.backbone.state_dict(), os.path.join(save_backbone_dir, 'best-backbone-ckpt.pt'))
 
 if __name__ == '__main__':
     main()

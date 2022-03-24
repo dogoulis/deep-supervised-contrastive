@@ -163,17 +163,17 @@ def main():
         os.makedirs(save_dir)
 
     # define vale for min-loss:
-    min_loss, train_results = float('inf'), {}
+    min_loss, train_results = float('inf'), []
     print('Training starts...')
 
     for epoch in range(args.epochs):
 
         wandb.log({'epoch': epoch})
-        train_results = train_epoch(model, train_dataloader=train_dataloader, args=args, optimizer=optimizer, criterion=criterion,
+        train_loss = train_epoch(model, train_dataloader=train_dataloader, args=args, optimizer=optimizer, criterion=criterion,
                     scheduler=scheduler, fp16_scaler=fp16_scaler, epoch=epoch)
 
-        if train_results['training-loss'] < min_loss:
-            min_loss = train_results['training-loss'].copy()
+        if train_loss < min_loss:
+            min_loss = train_loss.copy()
             torch.save(model.state_dict(), os.path.join(save_dir, 'best-ckpt.pt'))
 
 if __name__ == '__main__':

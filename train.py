@@ -1,4 +1,3 @@
-from random import shuffle
 import numpy as np
 from tqdm import tqdm
 import os
@@ -57,6 +56,9 @@ parser.add_argument('-lr', '--learning_rate', type=float, default=1e-3,
 parser.add_argument('-wd', '--weight_decay', type=float, default=1e-5,
                     metavar='Weight Decay', help='Weight decay of the optimizer (default: 1e-5).')
 
+parser.add_argument('--scheduler', type=str,
+                        metavar='scheduler', help='Scheduler to use during training (default: None).')
+
                     
 args = parser.parse_args()
 
@@ -77,22 +79,22 @@ def train_epoch(model, train_dataloader, args, optimizer, criterion, scheduler=N
         y.to(args.device)
         
 
-        # select the real and fake indexes at batches
+        # select the real and fake indexes at batches:
         real_idxs = y == 0 
         fake_idxs = y == 1
         
         real_class_batch = x[real_idxs]
         fake_class_batch = x[fake_idxs]
         
-        # pass the real and fake batches through the backbone network and the through the projectors
+        # pass the real and fake batches through the backbone network and then through the projectors:
         z_real = model.real_projector(model.backbone(real_class_batch))
         z_fake = model.fake_projector(model.backbone(fake_class_batch))
         
-        # mixed loss calculation
+        # mixed loss calculation:
         loss = criterion((model.bn(z_real), model.bn(z_fake)),
                             (y[real_idxs], y[fake_idxs]))
         
-        # mixed-precesion if given in arguments
+        # mixed-precesion if given in arguments:
         if fp16_scaler is not None:
             fp16_scaler.scale(loss).backward()
             fp16_scaler.step(optimizer)
@@ -106,7 +108,12 @@ def train_epoch(model, train_dataloader, args, optimizer, criterion, scheduler=N
 
         # log mean loss for the last 10 batches:
         if (batch+1) % 10 == 0:
-            wandb.log({'train-steploss': np.mean(running_loss[-10:])}) 
+            wandb.log({'train-steploss': np.mean(running_loss[-10:])})
+    
+    if scheduler is None:
+        pass
+    else:
+        scheduler.step()
     
     train_loss = np.mean(running_loss)
 
@@ -114,7 +121,7 @@ def train_epoch(model, train_dataloader, args, optimizer, criterion, scheduler=N
     
     return train_loss
 
-# MAIN def
+# MAIN def:
 def main():
 
     # initialize weights and biases:
@@ -137,7 +144,7 @@ def main():
                                     shuffle=True)
 
     # define optimizer:
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay) # fix, see if we use LARS or Adam or etc...
 
     # define the criterion:
     criterion = None
@@ -145,6 +152,8 @@ def main():
     fp16_scaler = None
     if args.fp16 is not None:
         fp16_scaler = torch.cuda.amp.GradScaler()
+
+    scheduler = None # fix (wether we use or not)
 
     # directory:
     save_dir = args.save_dir
@@ -161,7 +170,7 @@ def main():
 
         wandb.log({'epoch': epoch})
         train_results = train_epoch(model, train_dataloader=train_dataloader, args=args, optimizer=optimizer, criterion=criterion,
-                    scheduler=None, fp16_scaler=fp16_scaler, epoch=epoch)
+                    scheduler=scheduler, fp16_scaler=fp16_scaler, epoch=epoch)
 
         if train_results['training-loss'] < min_loss:
             min_loss = train_results['training-loss'].copy()

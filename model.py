@@ -17,7 +17,7 @@ class Model(nn.Module):
             projector_layers.append(nn.Linear(config['projector'][i],
                                                 config['projector'][i+1],
                                                 bias=False))
-            projector_layers.append(nn.BatchNorm1d(config['projector[i+1']))
+            projector_layers.append(nn.BatchNorm1d(config['projector'][i+1]))
             projector_layers.append(nn.ReLU(inplace=True))
         projector_layers.append(nn.Linear(config['projector'][-2],
                                             config['projector'][-1],
@@ -35,3 +35,4 @@ class Model(nn.Module):
     
     def forward(self, x):
         return self.backbone(x)
+        

@@ -1,17 +1,26 @@
-import enum
-import os
-import argparse
 import numpy as np
 from tqdm import tqdm
 
-import timm
-import torch
-import torch.nn as nn
 import wandb
 
-from torch.utils.data.dataloader import DataLoader
-from dataset import pytorch_dataset, augmentations
+import argparse
 
+
+
+# parser:
+parser = argparse.ArgumentParser(description='Training arguments')
+
+parser.add_argument('--project_name', type=str, required=True,
+                    metavar='project_name', help='Project name, utilized for logging purposes in W&B.')
+
+parser.add_argument('-d', '--dataset_dir', type=str, required=True,
+                    metavar='dataset_dir', help='Directory where the datasets are stored.')
+
+parser.add_argument('-e', '--epochs', type=int, default=15,
+                    metavar='epochs', help='Number of epochs')
+
+parser.add_argument('--device', type=str,
+                    metavar='device', help='Device used during training')
 
 
 # define training logic:

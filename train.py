@@ -1,75 +1,62 @@
+import argparse
+import os
 from random import shuffle
 from wsgiref import validate
+
 import numpy as np
-from tqdm import tqdm
-import os
 import torch
-from torch import nn
 import wandb
+from torch import nn
+from torch.utils.data.dataloader import DataLoader
+from tqdm import tqdm
+
+from dataset import gan_aug, gan_dataset
 from losses import BarlowTwinsLoss
 
-import argparse
-
-from torch.utils.data.dataloader import DataLoader
-from dataset import gan_dataset, gan_aug
-
-# Experiment Configuration:
-
-config = {'projector': [2048] + [8192, 8192, 8192]}
-
-# parser:
+# CMD ARGUMENTS
 parser = argparse.ArgumentParser(description='Training arguments')
-
-parser.add_argument('--project_name', type=str, required=True,
+# WANDB
+parser.add_argument('-p', '--project_name', type=str, required=True,
                     metavar='project_name', help='Project name, utilized for logging purposes in W&B.')
-
-parser.add_argument('-d', '--dataset_dir', type=str, required=True,
-                    metavar='dataset_dir', help='Directory where the datasets are stored.')
-
-parser.add_argument('-e', '--epochs', type=int, default=100,
-                    metavar='epochs', help='Number of epochs.')
-
-parser.add_argument('--fp16', type=str, default=None,
-                    metavar='fp16', help='Indicator for using mixed precision.')
-
-parser.add_argument('--save_model_dir', type=str,
-                    metavar='save-model-dir', help='Save directory path for model.')
-
-parser.add_argument('--save_back_dir', type=str,
-                    metavar='save-back-dir', help='Save directory path for backbone net.')
-
+parser.add_argument('-rg', '--run-group', type=str, default=config['run_group'],
+                    help='group of runs to put the current run into (e.g. ff)')
 parser.add_argument('--name', type=str,
                     metavar='name', help='Experiment name that logs into wandb.')
-
-parser.add_argument('--group', type=str,
-                    metavar='group', help='Grouping argument for W&B init.')
-
-parser.add_argument('--workers', type=str, default=12,
-                    metavar='workers', help='Number of workers for the dataloader.')
-
-parser.add_argument('--device', type=int, default=0,
-                    metavar='device', help='Device used during training (default: 0).')
-
-parser.add_argument('--train_dir', type=str,
-                    metavar='train-dir', help='Training dataset path for csv.')
-
-parser.add_argument('--valid_dir', type=str,
-                    metavar='valid-dir', help='Validation dataset path for csv.')
-
+# TRAINING
 parser.add_argument('-b', '--batch_size', type=int, default=32,
                     metavar='batch_size', help='Input batch size for training (default: 32).')
-
 parser.add_argument('-lr', '--learning_rate', type=float, default=1e-3,
                     metavar='Learning Rate', help='Learning rate of the optimizer (default: 1e-3).')
-
 parser.add_argument('-wd', '--weight_decay', type=float, default=1e-5,
-                    metavar='Weight Decay', help='Weight decay of the optimizer (default: 1e-5).')
-
-parser.add_argument('--scheduler', type=str,
-                        metavar='scheduler', help='Scheduler to use during training (default: None).')
-
-                    
+                    metavar='weight_decay', help='Weight decay of the optimizer (default: 1e-5).')
+parser.add_argument('-sch', '--scheduler', type=str, default=None,
+                    metavar='scheduler', help='Scheduler to use during training (default: None).')
+# DATASET
+parser.add_argument('-d', '--dataset', type=str, default=None,
+                    metavar='dataset', help='dataset on which to evaluate (default: None)')
+parser.add_argument('-dp', '--dataset_path', type=str, default=None,
+                    metavar='dataset', help='dataset on which to evaluate')
+# MODEL DETAILS
+parser.add_argument('-proj', '--projector', type=int, nargs='+', default=[2048] + [8192, 8192, 8192],
+                    metavar='projector', help='projector architecture')
+# DIRS & PATHS
+parser.add_argument('-save', '--save-model-dir', type=str,
+                    metavar='save_model_dir', help='Save directory path for model.')
+parser.add_argument('--save-back-dir', type=str,
+                    metavar='save_back_dir', help='Save directory path for backbone net.')
+parser.add_argument('--train_dir', type=str,
+                    metavar='train-dir', help='Training dataset path for csv.')
+parser.add_argument('--valid_dir', type=str,
+                    metavar='valid-dir', help='Validation dataset path for csv.')
+# OTHER
+parser.add_argument('--device', type=int, default=0,
+                    metavar='device', help='Device used during training (default: 0).')
+parser.add_argument('-nw', '--num-workers', type=int, default=8, required=False,
+                    metavar='num_workers', help='number of workers to use for dataloading (default: 8)')
+parser.add_argument('-fp', '--fp16', default=True, action='store_true',
+                    metavar='fp16', help='boolean for using mixed precision.')
 args = parser.parse_args()
+
 
 # define training logic:
 def train_epoch(model, train_dataloader, args, optimizer, criterion, scheduler=None,

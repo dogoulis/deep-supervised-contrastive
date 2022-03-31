@@ -90,14 +90,15 @@ def train_epoch(model, train_dataloader, args, optimizer, criterion, scheduler=N
         real_class_batch = x[real_idxs]
         fake_class_batch = x[fake_idxs]
         
-        # pass the real and fake batches through the backbone network and then through the projectors:
-        z_real = model.real_projector(model(real_class_batch))
-        z_fake = model.fake_projector(model(fake_class_batch))
-        # pass the batch through the classifier
-        output = model(model.fc(x))
-        
-        # mixed loss calculation:
-        loss = criterion(output) + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
+        optimizer.zero_grad()
+        with torch.cuda.amp.autocast(fp16_scaler is not None):
+            # pass the real and fake batches through the backbone network and then through the projectors:
+            z_real = model.real_projector(model(real_class_batch))
+            z_fake = model.fake_projector(model(fake_class_batch))
+            # pass the batch through the classifier
+            output = model(model.fc(x))
+            # mixed loss calculation:
+            loss = criterion(output, y) + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
         
         # mixed-precesion if given in arguments:
         if fp16_scaler is not None:
@@ -115,16 +116,44 @@ def train_epoch(model, train_dataloader, args, optimizer, criterion, scheduler=N
         if (batch+1) % 10 == 0:
             wandb.log({'train-steploss': np.mean(running_loss[-10:])})
     
-    if scheduler is None:
-        pass
-    else:
-        scheduler.step()
-    
+    # scheduler
+    scheduler.step()
+        
     train_loss = np.mean(running_loss)
 
     wandb.log({'train-epoch-loss': train_loss})
     
     return train_loss
+
+# define validation logic
+@torch.no_grad()
+def validate_epoch(model, val_dataloader, args, criterion):
+    model.eval()
+
+    running_loss, y_true, y_pred = [], [], []
+    for x, y in val_dataloader:
+        x = x.to(args.device)
+        y = y.to(args.device).unsqueeze(1)
+
+        outputs = model.fc(model(x))
+        loss = criterion(outputs, y)
+
+        # loss calculation over batch
+        running_loss.append(loss.cpu().numpy())
+
+        # accuracy calculation over batch
+        outputs = torch.sigmoid(outputs)
+        outputs = torch.round(outputs)
+        y_true.append(y.cpu())
+        y_pred.append(outputs.cpu())
+    
+    y_true = torch.cat(y_true, 0).numpy()
+    y_pred = torch.cat(y_pred, 0).numpy()
+    val_loss = np.mean(running_loss)
+    wandb.log({'validation-loss' : val_loss})
+    acc = 100. * np.mean(y_true == y_pred)
+    wandb.log({'validation-accuracy' : acc})
+    return{'val_acc' : acc, 'val_loss' : val_loss}
 
 # MAIN def:
 def main():

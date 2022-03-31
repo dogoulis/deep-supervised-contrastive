@@ -8,7 +8,8 @@ class Model(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.backbone = timm.create_model('resnet50', pretrained=True, num_classes=0)        
+        self.backbone = timm.create_model('resnet50', pretrained=True, num_classes=0)
+        self.fc = nn.Linear(self.backbone.fc.out_features, 1)       
 
         # projector:
 

@@ -4,6 +4,7 @@ import os
 import torch
 from torch import nn
 import wandb
+from losses import BarlowTwinsLoss
 
 import argparse
 
@@ -90,12 +91,13 @@ def train_epoch(model, train_dataloader, args, optimizer, criterion, scheduler=N
         fake_class_batch = x[fake_idxs]
         
         # pass the real and fake batches through the backbone network and then through the projectors:
-        z_real = model.real_projector(model.backbone(real_class_batch))
-        z_fake = model.fake_projector(model.backbone(fake_class_batch))
+        z_real = model.real_projector(model(real_class_batch))
+        z_fake = model.fake_projector(model(fake_class_batch))
+        # pass the batch through the classifier
+        output = model(model.fc(x))
         
         # mixed loss calculation:
-        loss = criterion((model.bn(z_real), model.bn(z_fake)),
-                            (y[real_idxs], y[fake_idxs]))
+        loss = criterion(output) + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
         
         # mixed-precesion if given in arguments:
         if fp16_scaler is not None:
@@ -150,7 +152,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay) # fix, see if we use LARS or Adam or etc...
 
     # define the criterion:
-    criterion = None
+    criterion = nn.BCEWithLogitsLoss()
 
     fp16_scaler = None
     if args.fp16 is not None:

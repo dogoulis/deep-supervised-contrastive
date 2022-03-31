@@ -1,5 +1,6 @@
 import argparse
 
+
 def get_argparser():
     # CMD ARGUMENTS
     parser = argparse.ArgumentParser(description='Training arguments')
@@ -15,12 +16,20 @@ def get_argparser():
                         metavar='epochs', help='Max number of epochs to train for')
     parser.add_argument('-b', '--batch_size', type=int, default=32, required=False,
                         metavar='batch_size', help='Input batch size for training (default: 32).')
+    ## OPTIMZER
+    parser.add_argument('-opt', '--optimizer', type=str, default='adam', required=False,
+                        metavar='optimizer', help='optimizer to use during training (default: adam).')
     parser.add_argument('-lr', '--learning_rate', type=float, default=1e-3, required=False,
                         metavar='learning_rate', help='Learning rate of the optimizer (default: 1e-3).')
     parser.add_argument('-wd', '--weight_decay', type=float, default=1e-5, required=False,
                         metavar='weight_decay', help='Weight decay of the optimizer (default: 1e-5).')
+    ## SCHEDULE
     parser.add_argument('-sch', '--scheduler', type=str, default='step_rl', required=False,
-                        metavar='scheduler', help='Scheduler to use during training (default: None).')
+                        metavar='scheduler', help='Scheduler to use during training (default: steprl).')
+    parser.add_argument('-step', '--scheduler_step_size', type=int, default=5, required=False,
+                        metavar='scheduler_step_size', help='scheduler step size (default: 5)')
+    parser.add_argument('-gamma', '--scheduler_gamma', type=float, default=0.1, required=False,
+                        metavar='scheduler_gamma', help='scheduler gamma (default: 0.1)')
     # DATASET
     parser.add_argument('-aug', '--augmentations', type=str, default=None, required=True,
                         metavar='augmentations', help='augmentations for the dataset')

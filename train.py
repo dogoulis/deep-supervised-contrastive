@@ -17,6 +17,7 @@ from src.dataset import CelebDF
 from src.losses import BarlowTwinsLoss
 from src.model import  Model
 from src.argparser_args import get_argparser
+from src.configurators import config_optimizers, config_schedulers
 
 # CMD ARGUMENTS
 parser = get_argparser()
@@ -33,10 +34,12 @@ def main():
     model = model.to(args.device)
 
     # define training transforms/augmentations
+    # TODO create configurator for transformations (see optimizers and schedulers)
     train_transforms = aug.get_gan_training_augmentations(args.aug)
     validation_transforms = aug.get_gan_validation_augmentations(args.aug)
 
     # set the path for training
+    # TODO create configurator for datasets (see optimizers and schedulers)
     train_dataset = gan_datasets.dataset2(args.dataset_dir, args.train_dir, train_transforms)
     val_dataset = gan_datasets.dataset2(args.dataset_dir, args.valid_dir, validation_transforms)
 
@@ -45,11 +48,9 @@ def main():
                                     shuffle=True)
     val_dataloader = DataLoader(val_dataset, num_workers=args.workers, batch_size=args.batch_size, shuffle=True)
 
-    # define optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay) 
-
-    # setting the scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=5, gamma=0.1)
+    # define optimizer and scheduler
+    optimizer = config_optimizers(model.parameters(), args)
+    scheduler = config_schedulers(optimizer, args)
 
     # define the criterion:
     criterion = nn.BCEWithLogitsLoss()

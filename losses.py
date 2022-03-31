@@ -14,7 +14,7 @@ def BarlowTwinsLoss(class_batch, lambda_param=5e-3):
     return loss
 
 
-def off_diagonal(self, x):
+def off_diagonal(x):
     # return a flattened view of the off-diagonal elements of a square matrix
     n, m = x.shape
     assert n == m 

@@ -11,65 +11,22 @@ from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
 from src.dataset import augmentations as aug
-from src.dataset import datasets
+from src.dataset import gan_datasets
+from src.dataset import FaceForensics
+from src.dataset import CelebDF
 from src.losses import BarlowTwinsLoss
 from src.model import  Model
+from src.argparser_args import get_argparser
 
 # CMD ARGUMENTS
-parser = argparse.ArgumentParser(description='Training arguments')
-# WANDB
-parser.add_argument('-p', '--project_name', type=str, required=True,
-                    metavar='project_name', help='Project name, utilized for logging purposes in W&B.')
-parser.add_argument('-rg', '--run-group', type=str, default=config['run_group'],
-                    help='group of runs to put the current run into (e.g. ff)')
-parser.add_argument('--name', type=str,
-                    metavar='name', help='Experiment name that logs into wandb.')
-# TRAINING
-parser.add_argument('-e', '--epochs', type=int, default=10, required=True,
-                    metavar='epochs', help='Number of epochs to train for')
-parser.add_argument('-b', '--batch_size', type=int, default=32,
-                    metavar='batch_size', help='Input batch size for training (default: 32).')
-parser.add_argument('-lr', '--learning_rate', type=float, default=1e-3,
-                    metavar='Learning Rate', help='Learning rate of the optimizer (default: 1e-3).')
-parser.add_argument('-wd', '--weight_decay', type=float, default=1e-5,
-                    metavar='weight_decay', help='Weight decay of the optimizer (default: 1e-5).')
-parser.add_argument('-sch', '--scheduler', type=str, default=None,
-                    metavar='scheduler', help='Scheduler to use during training (default: None).')
-# DATASET
-parser.add_argument('-aug', '--augmentations', type=str, default=None,
-                    metavar='augmentations', help='augmentations for the dataset')
-parser.add_argument('-d', '--dataset', type=str, default=None,
-                    metavar='dataset', help='dataset on which to evaluate (default: None)')
-parser.add_argument('-dp', '--dataset_path', type=str, default=None,
-                    metavar='dataset', help='dataset on which to evaluate')
-# MODEL DETAILS
-parser.add_argument('-proj', '--projector', type=int, nargs='+', default=[2048] + [8192, 8192, 8192],
-                    metavar='projector', help='projector architecture')
-# PATHS
-parser.add_argument('-save', '--save_model_path', type=str,
-                    metavar='save_model_path', help='Save directory path for model.')
-parser.add_argument('--save_back_path', type=str,
-                    metavar='save_back_path', help='Save directory path for backbone net.')
-parser.add_argument('--train_path', type=str,
-                    metavar='train_path', help='Training dataset path for csv.')
-parser.add_argument('--valid_path', type=str,
-                    metavar='valid_path', help='Validation dataset path for csv.')
-# OTHER
-parser.add_argument('--device', type=int, default=0,
-                    metavar='device', help='Device used during training (default: 0).')
-parser.add_argument('-nw', '--num-workers', type=int, default=8, required=False,
-                    metavar='num_workers', help='number of workers to use for dataloading (default: 8)')
-parser.add_argument('-fp', '--fp16', default=True, action='store_true',
-                    metavar='fp16', help='boolean for using mixed precision.')
+parser = get_argparser()
 args = parser.parse_args()
 print(args)
-print(vars(args))
-
 
 def main():
     # initialize weights and biases
     wandb.init(project=args.project_name, name=args.name,
-                config=vars(args), group = args.group, save_code=True)
+                config=vars(args), group=args.run_group, save_code=True)
 
     # model definition
     model = Model(config=args)
@@ -80,8 +37,8 @@ def main():
     validation_transforms = aug.get_gan_validation_augmentations(args.aug)
 
     # set the path for training
-    train_dataset = datasets.dataset2(args.dataset_dir, args.train_dir, train_transforms)
-    val_dataset = datasets.dataset2(args.dataset_dir, args.valid_dir, validation_transforms)
+    train_dataset = gan_datasets.dataset2(args.dataset_dir, args.train_dir, train_transforms)
+    val_dataset = gan_datasets.dataset2(args.dataset_dir, args.valid_dir, validation_transforms)
 
     # defining data loader
     train_dataloader = DataLoader(train_dataset, num_workers=args.workers, batch_size=args.batch_size,

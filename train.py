@@ -1,3 +1,5 @@
+from random import shuffle
+from wsgiref import validate
 import numpy as np
 from tqdm import tqdm
 import os
@@ -50,6 +52,9 @@ parser.add_argument('--device', type=int, default=0,
 
 parser.add_argument('--train_dir', type=str,
                     metavar='train-dir', help='Training dataset path for csv.')
+
+parser.add_argument('--valid_dir', type=str,
+                    metavar='valid-dir', help='Validation dataset path for csv.')
 
 parser.add_argument('-b', '--batch_size', type=int, default=32,
                     metavar='batch_size', help='Input batch size for training (default: 32).')
@@ -168,17 +173,24 @@ def main():
 
     # define training transforms/augmentations:
     train_transforms = gan_aug.get_training_augmentations(args.aug)
+    validation_transforms = gan_aug.get_validation_augmentations(args.aug)
 
 
     # set the path for training:
     train_dataset = gan_dataset.dataset2(args.dataset_dir, args.train_dir, train_transforms)
+    val_dataset = gan_dataset.dataset2(args.dataset_dir, args.valid_dir, validation_transforms)
 
     # defining data loader:
     train_dataloader = DataLoader(train_dataset, num_workers=args.workers, batch_size=args.batch_size,
                                     shuffle=True)
+    val_dataloader = DataLoader(val_dataset, num_workers=args.workers, batch_size=args.batch_size, shuffle=True)
 
     # define optimizer:
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay) # fix, see if we use LARS or Adam or etc...
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay) 
+
+    # setting the scheduler:
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer=optimizer, step_size=5, gamma=0.1)
 
     # define the criterion:
     criterion = nn.BCEWithLogitsLoss()
@@ -186,8 +198,6 @@ def main():
     fp16_scaler = None
     if args.fp16 is not None:
         fp16_scaler = torch.cuda.amp.GradScaler()
-
-    scheduler = None # fix (wether we use or not)
 
     # checkpointing - directories:
     save_model_dir = args.save_model_dir
@@ -211,13 +221,14 @@ def main():
     for epoch in range(args.epochs):
 
         wandb.log({'epoch': epoch})
-        train_loss = train_epoch(model, train_dataloader=train_dataloader, args=args, optimizer=optimizer, criterion=criterion,
+        train_epoch(model, train_dataloader=train_dataloader, args=args, optimizer=optimizer, criterion=criterion,
                     scheduler=scheduler, fp16_scaler=fp16_scaler, epoch=epoch)
+        val_results = validate(model, val_dataloader=val_dataloader, args=args, criterion=criterion)
 
-        if train_loss < min_loss:
-            min_loss = train_loss.copy()
-            torch.save(model.state_dict(), os.path.join(save_model_dir, 'best-model-ckpt.pt'))
-            torch.save(model.backbone.state_dict(), os.path.join(save_backbone_dir, 'best-backbone-ckpt.pt'))
+        if val_results['val_loss'] < min_loss:
+            min_loss = val_results['val_loss'].copy()
+            torch.save(model.state_dict(), os.path.join(save_model_dir, 'best-ckpt.pt'))
+
 
 if __name__ == '__main__':
     main()

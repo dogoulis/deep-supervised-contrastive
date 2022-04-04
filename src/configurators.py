@@ -54,7 +54,7 @@ def config_schedulers(optimizer, args):
     return scheduler
 
 
-def config_transforms(aug_type, gan_aug=None, df_aug=None, validation=False):
+def config_transforms(aug_type, gan_aug=None, df_aug=None, input_size=None, validation=False):
     if aug_type == "gan":
         transforms = (
             aug.get_gan_validation_augmentations()
@@ -63,9 +63,9 @@ def config_transforms(aug_type, gan_aug=None, df_aug=None, validation=False):
         )
     elif aug_type == "df":
         transforms = (
-            aug.get_df_validation_augmentations()
+            aug.get_df_validation_augmentations(input_size=input_size)
             if validation
-            else aug.get_df_training_augmentations(df_aug)
+            else aug.get_df_training_augmentations(df_aug=df_aug, input_size=input_size)
         )
     else:
         return ValueError("aug type not implemented")

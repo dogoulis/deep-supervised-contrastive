@@ -49,8 +49,6 @@ def main():
     elif args.dataset_type == 'df':
         dm = config_df_datasets(dataset=args.dataset, dataset_path=args.dataset_path, batch_size=args.batch_size, num_workers=args.num_workers, transforms=train_transforms, video_level=False)
         dm.setup(stage='fit')
-        print(dm.train_dataset)
-        print(len(dm.train_dataset))
         train_dataloader = dm.train_dataloader()
         val_dataloader = dm.val_dataloader()
 
@@ -66,10 +64,8 @@ def main():
         fp16_scaler = torch.cuda.amp.GradScaler()
 
     # checkpointing - directories
-    print(args.save_model_path)
     if not os.path.exists(args.save_model_path):
         os.makedirs(args.save_model_path)
-    print(args.save_backbone_path)
     if not os.path.exists(args.save_backbone_path):
         os.makedirs(args.save_backbone_path)
         
@@ -91,17 +87,17 @@ def main():
 
 
 def train_epoch(model, train_dataloader, args, optimizer, criterion, scheduler=None, fp16_scaler=None, epoch=0):
-
     # to train only the classification layer
     model.train()
     epoch += 1
     running_loss = []
     pbar = tqdm(train_dataloader, desc=f'epoch {epoch}.', unit='iter')
     
-    for batch, (x,y) in enumerate(pbar):
-        
-        x.to(args.device)
-        y.to(args.device)
+    for batch, (x, id, y) in enumerate(pbar):
+        x = x.to(args.device)
+        y = y.to(args.device)
+        print(x.shape)
+        print(y.shape)
 
         # select the real and fake indexes at batches
         real_idxs = y == 0 
@@ -125,22 +121,17 @@ def train_epoch(model, train_dataloader, args, optimizer, criterion, scheduler=N
             fp16_scaler.scale(loss).backward()
             fp16_scaler.step(optimizer)
             fp16_scaler.update()
-        
         else:
             loss.backward()
             optimizer.step()
-        
         running_loss.append(loss.detach().cpu().numpy())
-
         # log mean loss for the last 10 batches:
         if (batch+1) % 10 == 0:
             wandb.log({'train-steploss': np.mean(running_loss[-10:])})
     
     # scheduler
     scheduler.step()
-        
     train_loss = np.mean(running_loss)
-
     wandb.log({'train-epoch-loss': train_loss})
     
     return train_loss
@@ -151,7 +142,7 @@ def validate_epoch(model, val_dataloader, args, criterion):
     model.eval()
 
     running_loss, y_true, y_pred = [], [], []
-    for x, y in val_dataloader:
+    for x, id, y in val_dataloader:
         x = x.to(args.device)
         y = y.to(args.device).unsqueeze(1)
 

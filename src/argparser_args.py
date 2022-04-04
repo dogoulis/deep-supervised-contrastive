@@ -31,6 +31,8 @@ def get_argparser():
     parser.add_argument('-gamma', '--scheduler_gamma', type=float, default=0.1, required=False,
                         metavar='scheduler_gamma', help='scheduler gamma (default: 0.1)')
     # DATASET
+    parser.add_argument('-i', '--input_size', type=str, default=None, required=True,
+                         metavar='input_size', help='input size for mdoels')
     parser.add_argument('-at', '--augmentations_type', type=str, default=None, required=True,
                         metavar='augmentations_type', help='augmentations type for the dataset')
     parser.add_argument('-gan_aug', '--gan_augmentations', type=str, default=None, required=False,

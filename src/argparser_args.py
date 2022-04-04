@@ -31,12 +31,18 @@ def get_argparser():
     parser.add_argument('-gamma', '--scheduler_gamma', type=float, default=0.1, required=False,
                         metavar='scheduler_gamma', help='scheduler gamma (default: 0.1)')
     # DATASET
-    parser.add_argument('-aug', '--augmentations', type=str, default=None, required=True,
-                        metavar='augmentations', help='augmentations for the dataset')
+    parser.add_argument('-at', '--augmentations_type', type=str, default=None, required=True,
+                        metavar='augmentations_type', help='augmentations type for the dataset')
+    parser.add_argument('-gan_aug', '--gan_augmentations', type=str, default=None, required=False,
+                        metavar='gan_augmentations', help='gan augmentations for the dataset')
+    parser.add_argument('-df_aug', '--df_augmentations', type=str, default=None, required=False,
+                        metavar='df_augmentations', help='df augmentations for the dataset')
+    parser.add_argument('-dt', '--dataset_type', type=str, default=None, required=True,
+                        metavar='dataset_type', help='gan or df dataset type')
     parser.add_argument('-d', '--dataset', type=str, default=None, required=True,
-                        metavar='dataset', help='dataset on which to evaluate')
+                        metavar='dataset', help='dataset name on which to evaluate')
     parser.add_argument('-dp', '--dataset_path', type=str, default=None, required=True,
-                        metavar='dataset', help='dataset on which to evaluate')
+                        metavar='dataset_path', help='root dataset path on which to evaluate')
     # DATA PATHS
     parser.add_argument('-tp', '--train_path', type=str, default=None, required=False,
                         metavar='train_path', help='Training dataset path for csv.')
@@ -51,7 +57,7 @@ def get_argparser():
     parser.add_argument('--saveb', '--save_backbone_path', type=str, default='./checkpoints/backbone', required=False,
                         metavar='save_backbone_path', help='Save directory path for backbone net.')
     # OTHER
-    parser.add_argument('--device', type=int, default=None, required=True,
+    parser.add_argument('-dev', '--device', type=int, default=None, required=True,
                         metavar='device', help='Device used during training')
     parser.add_argument('-nw', '--num-workers', type=int, default=8, required=False,
                         metavar='num_workers', help='number of workers to use for dataloading (default: 8)')

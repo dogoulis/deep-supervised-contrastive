@@ -54,7 +54,7 @@ def get_argparser():
     # CHECKPOINT PATHS
     parser.add_argument('-savem', '--save_model_path', type=str, default='./checkpoints/model', required=False,
                         metavar='save_model_path', help='Save directory path for model.')
-    parser.add_argument('--saveb', '--save_backbone_path', type=str, default='./checkpoints/backbone', required=False,
+    parser.add_argument('-saveb', '--save_backbone_path', type=str, default='./checkpoints/backbone', required=False,
                         metavar='save_backbone_path', help='Save directory path for backbone net.')
     # OTHER
     parser.add_argument('-dev', '--device', type=int, default=None, required=True,

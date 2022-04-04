@@ -168,10 +168,9 @@ class FaceForensics(pl.LightningDataModule):
             set_ids = [i for x in json_array for i in x]
             all_ids.append(set_ids)
         train_ids, val_ids, test_ids = all_ids
-        print(train_ids)
         train_set, val_set, test_set = [], [], []
         for path, label in zip(images, labels):
-            vid_name = path.split('/')[-2]
+            vid_name = path.split('/')[-3]
             first_id = vid_name.split('.')[0].split('_')[0]
             if first_id in train_ids:
                 train_set.append((path, label))
@@ -180,7 +179,6 @@ class FaceForensics(pl.LightningDataModule):
             else:
                 test_set.append((path, label))
         
-        print(val_set)
         for name, files in zip(['train', 'val', 'test'],
                                [train_set, val_set, test_set]):
             df = pd.DataFrame(files, columns=['path', 'label'])
@@ -189,8 +187,6 @@ class FaceForensics(pl.LightningDataModule):
                 lambda x: '/'.join(x.split('/')[-6:]) if 'manipulated' not in x else '/'.join(x.split('/')[-7:])
             )
             df.to_csv(os.path.join(self.dataset_path, f'{name}.csv'))
-            print(df)
-            print(os.path.join(self.dataset_path, f'{name}.csv'))
 
     def setup(self, stage=None):
         # steps that should be done on every gpu
@@ -201,7 +197,6 @@ class FaceForensics(pl.LightningDataModule):
                 self.csv_names[0] if self.csv_names is not None else 'train.csv')
             )
             train_df.path = train_df.path.apply(lambda x: os.path.join(self.dataset_path, x))
-            print(self.dataset_path)
             self.train_dataset = FaceForensicsDataset(train_df.path,
                                                       train_df.label,
                                                       self.transforms,

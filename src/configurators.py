@@ -60,9 +60,13 @@ def config_transforms(
 ):
     if mode == "gan":
         transforms = (
-            aug.get_gan_validation_augmentations(resize_size=input_size, crop_size=crop_size)
+            aug.get_gan_validation_augmentations(
+                resize_size=input_size, crop_size=crop_size
+            )
             if validation
-            else aug.get_gan_training_augmentations(aug_type=type, resize_size=input_size, crop_size=crop_size)
+            else aug.get_gan_training_augmentations(
+                aug_type=type, resize_size=input_size, crop_size=crop_size
+            )
         )
     elif mode == "df":
         transforms = (
@@ -109,7 +113,7 @@ def config_datasets(
             csv_names=["train_index.csv", "val_100.csv", "test_index.csv"],
             video_level=video_level,
         )
-    elif dataset == 'gandataset':
+    elif dataset == "gandataset":
         dm = GANDataset.GANDataset(
             datasets_path=dataset_path,
             csv_paths=csv_paths,
@@ -119,7 +123,7 @@ def config_datasets(
             validation_transforms=validation_transforms,
         )
     else:
-        return ValueError('DATASET NAME NOT FOUND')
+        return ValueError("DATASET NAME NOT FOUND")
     print("DM defined")
     pl.seed_everything(1)
     dm.prepare_data()

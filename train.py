@@ -151,10 +151,9 @@ def train_epoch(
             # pass the batch through the classifier
             output = model.fc(model(x)).flatten()
             # mixed loss calculation
-            bce = criterion(output, y)
-            real_bt = BarlowTwinsLoss(z_real)
-            fake_bt = BarlowTwinsLoss(z_fake)
-            loss = bce + real_bt + fake_bt
+            loss = (
+                criterion(output, y) + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
+            )
 
         # mixed-precesion if given in arguments
         if fp16_scaler:

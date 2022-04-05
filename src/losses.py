@@ -2,6 +2,7 @@ import torch
 
 
 def BarlowTwinsLoss(class_batch, lambda_param=5e-3):
+    print(class_batch.shape)
 
     N, _ = class_batch.size()
     # cross-correlation matrix

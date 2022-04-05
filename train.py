@@ -48,7 +48,7 @@ def main():
         crop_size=args.crop_size,
         validation=False,
     )
-    print(train_transforms)
+
     validation_transforms = config_transforms(
         mode=args.augmentations_mode,
         type=args.augmentations_type,
@@ -56,7 +56,6 @@ def main():
         crop_size=args.crop_size,
         validation=True,
     )
-    print(validation_transforms)
 
     dm = config_datasets(
         dataset=args.dataset,

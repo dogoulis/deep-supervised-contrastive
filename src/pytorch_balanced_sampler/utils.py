@@ -1,7 +1,6 @@
 import logging
 import logging.config
 
-
 logging_level_dict = {0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}
 
 

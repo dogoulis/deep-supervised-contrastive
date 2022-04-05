@@ -1,12 +1,14 @@
-from random import shuffle
-from torch.utils.data import Dataset, DataLoader
-import torch
+import os
+import random
+
 import cv2
 import numpy as np
 import pandas as pd
-from albumentations.pytorch import ToTensorV2
-import os
 import pytorch_lightning as pl
+import torch
+from albumentations.pytorch import ToTensorV2
+from src.dataset.utils import get_batch_sampler
+from torch.utils.data import DataLoader, Dataset
 
 
 class GANDataset(pl.LightningDataModule):
@@ -56,25 +58,28 @@ class GANDataset(pl.LightningDataModule):
     def train_dataloader(self):
         return DataLoader(
             self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
             num_workers=self.num_workers,
+            batch_sampler=get_batch_sampler(
+                dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True
+            ),
         )
 
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
             num_workers=self.num_workers,
+            batch_sampler=get_batch_sampler(
+                dataset=self.val_dataset, batch_size=self.batch_size, shuffle=True
+            ),
         )
 
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
             num_workers=self.num_workers,
+            batch_sampler=get_batch_sampler(
+                dataset=self.test_dataset, batch_size=self.batch_size, shuffle=True
+            ),
         )
 
 

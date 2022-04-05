@@ -4,9 +4,8 @@ import pytorch_lightning as pl
 import torch_optimizer
 from torch import nn, optim
 
-from src.dataset import CelebDF, FaceForensics
+from src.dataset import CelebDF, FaceForensics, GANDataset
 from src.dataset import augmentations as aug
-from src.dataset import GANDataset
 
 
 def config_optimizers(params, args):

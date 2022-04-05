@@ -1,6 +1,6 @@
 import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
 import cv2
+from albumentations.pytorch.transforms import ToTensorV2
 
 
 def get_gan_training_augmentations(aug_type, resize_size=256, crop_size=224):

@@ -9,6 +9,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from albumentations.pytorch import ToTensorV2
+from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -213,27 +214,30 @@ class CelebDF(pl.LightningDataModule):
         # return train loader
         return DataLoader(
             self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
             num_workers=self.num_workers,
+            batch_sampler=get_batch_sampler(
+                dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True
+            ),
         )
 
     def val_dataloader(self):
         # return val loader
         return DataLoader(
             self.val_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
             num_workers=self.num_workers,
+            batch_sampler=get_batch_sampler(
+                dataset=self.val_dataset, batch_size=self.batch_size, shuffle=True
+            ),
         )
 
     def test_dataloader(self):
         # return test loader
         return DataLoader(
             self.test_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
             num_workers=self.num_workers,
+            batch_sampler=get_batch_sampler(
+                dataset=self.test_dataset, batch_size=self.batch_size, shuffle=False
+            ),
         )
 
 

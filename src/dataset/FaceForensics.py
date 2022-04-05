@@ -9,8 +9,8 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from albumentations.pytorch import ToTensorV2
+from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
-from src.pytorch_balanced_sampler.sampler import SamplerFactory
 
 
 class FaceForensics(pl.LightningDataModule):
@@ -277,8 +277,8 @@ class FaceForensics(pl.LightningDataModule):
         return DataLoader(
             self.train_dataset,
             num_workers=self.num_workers,
-            batch_sampler=self.get_batch_sampler(
-                dataset=self.train_dataset, shuffle=True
+            batch_sampler=get_batch_sampler(
+                dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True
             ),
         )
 
@@ -287,8 +287,8 @@ class FaceForensics(pl.LightningDataModule):
         return DataLoader(
             self.val_dataset,
             num_workers=self.num_workers,
-            batch_sampler=self.get_batch_sampler(
-                dataset=self.val_dataset, shuffle=True
+            batch_sampler=get_batch_sampler(
+                dataset=self.val_dataset, batch_size=self.batch_size, shuffle=True
             ),
         )
 
@@ -297,28 +297,10 @@ class FaceForensics(pl.LightningDataModule):
         return DataLoader(
             self.test_dataset,
             num_workers=self.num_workers,
-            batch_sampler=self.get_batch_sampler(
-                dataset=self.test_dataset, shuffle=False
+            batch_sampler=get_batch_sampler(
+                dataset=self.test_dataset, batch_size=self.batch_size, shuffle=False
             ),
         )
-
-    def get_batch_sampler(self, dataset, shuffle):
-        class_idxs = [
-            [i for i, l in enumerate(dataset.labels) if l == 0],
-            [i for i, l in enumerate(dataset.labels) if l == 1],
-        ]
-        if shuffle:
-            random.shuffle(class_idxs[0])
-            random.shuffle(class_idxs[1])
-        n_batches = len(dataset.labels) // self.batch_size
-        batch_sampler = SamplerFactory().get(
-            class_idxs=class_idxs,
-            batch_size=self.batch_size,
-            n_batches=n_batches,
-            alpha=1,
-            kind="fixed",
-        )
-        return batch_sampler
 
 
 class FaceForensicsDataset(Dataset):

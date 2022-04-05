@@ -135,8 +135,6 @@ def train_epoch(
     for batch, (x, id, y) in enumerate(pbar):
         x = x.to(args.device)
         y = y.to(args.device)
-        print(x.shape)
-        print(y.shape)
 
         # select the real and fake indexes at batches
         real_idxs = y == 0
@@ -151,11 +149,12 @@ def train_epoch(
             z_real = model.real_projector(model(real_class_batch))
             z_fake = model.fake_projector(model(fake_class_batch))
             # pass the batch through the classifier
-            output = model(model.fc(x))
+            output = model.fc(model(x)).flatten()
             # mixed loss calculation
-            loss = (
-                criterion(output, y) + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
-            )
+            bce = criterion(output, y)
+            real_bt = BarlowTwinsLoss(z_real)
+            fake_bt = BarlowTwinsLoss(z_fake)
+            loss = bce + real_bt + fake_bt
 
         # mixed-precesion if given in arguments
         if fp16_scaler:

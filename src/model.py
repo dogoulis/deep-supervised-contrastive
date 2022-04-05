@@ -11,7 +11,6 @@ class Model(nn.Module):
         self.fc = nn.Linear(2048, 1)
 
         # projector:
-
         projector_layers = []
         for i in range(len(config["projector"]) - 2):
             projector_layers.append(
@@ -26,12 +25,10 @@ class Model(nn.Module):
         )
 
         # one projection head for each class:
-
         self.real_projector = nn.Sequential(*projector_layers)
         self.fake_projector = copy.deepcopy(self.real_projector)
 
         # normalization layer for the representations of z1 and z2:
-
         self.bn = nn.BatchNorm1d(config["projector"][-1], affine=False)
 
     def forward(self, x):

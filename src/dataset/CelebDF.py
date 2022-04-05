@@ -18,16 +18,18 @@ class CelebDF(pl.LightningDataModule):
     Takes into account sampling and balancing.
     """
 
-    def __init__(self,
-                 dataset_path,
-                 batch_size=32,
-                 num_workers=48,
-                 transforms=None,
-                 target_transforms=None,
-                 csv_names=None,
-                 sampling=1,
-                 balance=None,
-                 video_level=False):
+    def __init__(
+        self,
+        dataset_path,
+        batch_size=32,
+        num_workers=48,
+        transforms=None,
+        target_transforms=None,
+        csv_names=None,
+        sampling=1,
+        balance=None,
+        video_level=False,
+    ):
         """
         Parameters:
         -----------
@@ -82,10 +84,16 @@ class CelebDF(pl.LightningDataModule):
         # then sample and store the csvs
         if self.csv_names is not None:
             train_csv, val_csv, test_csv = self.csv_names
-            assert os.path.exists(os.path.join(self.dataset_path, train_csv)), 'train_csv provided is not a valid path'
-            assert os.path.exists(os.path.join(self.dataset_path, val_csv)), 'val_csv provided is not a valid path'
-            assert os.path.exists(os.path.join(self.dataset_path, test_csv)), 'test_csv provided is not a valid path'
-            print('CSV NAMES ACCEPTED, SKIPPING PREPARE_DATA ...')
+            assert os.path.exists(
+                os.path.join(self.dataset_path, train_csv)
+            ), "train_csv provided is not a valid path"
+            assert os.path.exists(
+                os.path.join(self.dataset_path, val_csv)
+            ), "val_csv provided is not a valid path"
+            assert os.path.exists(
+                os.path.join(self.dataset_path, test_csv)
+            ), "test_csv provided is not a valid path"
+            print("CSV NAMES ACCEPTED, SKIPPING PREPARE_DATA ...")
             return
 
         if self.csv_names is None and self.sampling is not None:
@@ -95,42 +103,61 @@ class CelebDF(pl.LightningDataModule):
             # sampling
             postfix = f"_{int(self.sampling*100)}{'_b_' if self.balance else ''}.csv"
 
-
             # train data
-            train_data = pd.read_csv(os.path.join(self.dataset_path, 'train_index.csv'))
+            train_data = pd.read_csv(os.path.join(self.dataset_path, "train_index.csv"))
             if self.sampling != 1:
                 print("\tSAMPLING TRAIN DATA...")
-                train_data = train_data.groupby('label').\
-                                sample(frac=self.sampling,replace=False).sample(frac=1).\
-                                reset_index(drop=True)
+                train_data = (
+                    train_data.groupby("label")
+                    .sample(frac=self.sampling, replace=False)
+                    .sample(frac=1)
+                    .reset_index(drop=True)
+                )
             if self.balance:
                 print("\tBALANCING TRAIN DATA...")
-                real = train_data[train_data.label==0]
-                fake = train_data[train_data.label==1]
+                real = train_data[train_data.label == 0]
+                fake = train_data[train_data.label == 1]
                 m = min(len(real), len(fake))
-                train_data = pd.concat([real[:m],fake[:m]]).sample(frac=1).reset_index(drop=True)
+                train_data = (
+                    pd.concat([real[:m], fake[:m]])
+                    .sample(frac=1)
+                    .reset_index(drop=True)
+                )
 
             # test data
-            test_data = pd.read_csv(os.path.join(self.dataset_path, 'test_index.csv'))
+            test_data = pd.read_csv(os.path.join(self.dataset_path, "test_index.csv"))
             if self.sampling != 1:
                 print("\tSAMPLING TEST DATA...")
-                test_data = test_data.groupby('label').\
-                                sample(frac=self.sampling,replace=False).sample(frac=1).\
-                                reset_index(drop=True)
+                test_data = (
+                    test_data.groupby("label")
+                    .sample(frac=self.sampling, replace=False)
+                    .sample(frac=1)
+                    .reset_index(drop=True)
+                )
             if self.balance:
                 print("\tBALANCING TEST DATA...")
-                real = test_data[test_data.label==0]
-                fake = test_data[test_data.label==1]
+                real = test_data[test_data.label == 0]
+                fake = test_data[test_data.label == 1]
                 m = min(len(real), len(fake))
-                test_data = pd.concat([real[:m],fake[:m]]).sample(frac=1).reset_index(drop=True)
+                test_data = (
+                    pd.concat([real[:m], fake[:m]])
+                    .sample(frac=1)
+                    .reset_index(drop=True)
+                )
 
             # train val split
-            val_len = int(np.floor(len(train_data)*0.2))
-            val_data, train_data  = train_data[:val_len], train_data[val_len:]
+            val_len = int(np.floor(len(train_data) * 0.2))
+            val_data, train_data = train_data[:val_len], train_data[val_len:]
 
-            train_data.to_csv(os.path.join(self.dataset_path, 'train'+postfix), index=False)
-            val_data.to_csv(os.path.join(self.dataset_path, 'val'+postfix), index=False)
-            test_data.to_csv(os.path.join(self.dataset_path, 'test'+postfix), index=False)
+            train_data.to_csv(
+                os.path.join(self.dataset_path, "train" + postfix), index=False
+            )
+            val_data.to_csv(
+                os.path.join(self.dataset_path, "val" + postfix), index=False
+            )
+            test_data.to_csv(
+                os.path.join(self.dataset_path, "test" + postfix), index=False
+            )
             print("\tDATA PREPARATION COMPLETE")
 
     def setup(self, stage=None):
@@ -138,66 +165,80 @@ class CelebDF(pl.LightningDataModule):
         # like splitting data, applying transfroms
         if self.csv_names is None:
             postfix = f"_{int(self.sampling*100)}{'_b_' if self.balance else ''}.csv"
-            self.train_csv = 'train' + postfix
-            self.val_csv = 'val' + postfix
-            self.test_csv = 'test' + postfix
-        if stage in (None, 'fit'):
+            self.train_csv = "train" + postfix
+            self.val_csv = "val" + postfix
+            self.test_csv = "test" + postfix
+        if stage in (None, "fit"):
             train_df = pd.read_csv(os.path.join(self.dataset_path, self.train_csv))
             # relative to absolute image paths, based on the provided dataset path
-            train_df.path = train_df.path.apply(lambda x: os.path.join(self.dataset_path, x))
-            self.train_dataset = CelebDFDataset(train_df.path,
-                                                train_df.label,
-                                                self.transforms,
-                                                self.target_transformsm,
-                                                self.video_level)
+            train_df.path = train_df.path.apply(
+                lambda x: os.path.join(self.dataset_path, x)
+            )
+            self.train_dataset = CelebDFDataset(
+                train_df.path,
+                train_df.label,
+                self.transforms,
+                self.target_transformsm,
+                self.video_level,
+            )
             val_df = pd.read_csv(os.path.join(self.dataset_path, self.val_csv))
-            val_df.path = val_df.path.apply(lambda x: os.path.join(self.dataset_path, x))
-            self.val_dataset = CelebDFDataset(val_df.path,
-                                              val_df.label,
-                                              self.transforms,
-                                              self.target_transforms,
-                                              self.video_level)
-        if stage in (None, 'test'):
-            print('Reading CSV...')
+            val_df.path = val_df.path.apply(
+                lambda x: os.path.join(self.dataset_path, x)
+            )
+            self.val_dataset = CelebDFDataset(
+                val_df.path,
+                val_df.label,
+                self.transforms,
+                self.target_transforms,
+                self.video_level,
+            )
+        if stage in (None, "test"):
+            print("Reading CSV...")
             test_df = pd.read_csv(os.path.join(self.dataset_path, self.test_csv))
-            test_df.path = test_df.path.apply(lambda x: os.path.join(self.dataset_path, x))
-            print('Done reading CSV...')
-            self.test_dataset = CelebDFDataset(test_df.path,
-                                               test_df.label,
-                                               self.transforms,
-                                               self.target_transforms,
-                                               self.video_level)
+            test_df.path = test_df.path.apply(
+                lambda x: os.path.join(self.dataset_path, x)
+            )
+            print("Done reading CSV...")
+            self.test_dataset = CelebDFDataset(
+                test_df.path,
+                test_df.label,
+                self.transforms,
+                self.target_transforms,
+                self.video_level,
+            )
 
     def train_dataloader(self):
         # return train loader
-        return DataLoader(self.train_dataset,
-                          batch_size=self.batch_size,
-                          shuffle=True,
-                          num_workers = self.num_workers)
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+        )
 
     def val_dataloader(self):
         # return val loader
-        return DataLoader(self.val_dataset,
-                          batch_size=self.batch_size,
-                          shuffle=False,
-                          num_workers = self.num_workers)
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+        )
 
     def test_dataloader(self):
         # return test loader
-        return DataLoader(self.test_dataset,
-                          batch_size=self.batch_size,
-                          shuffle=False,
-                          num_workers = self.num_workers)
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+        )
 
 
 class CelebDFDataset(Dataset):
-
-    def __init__(self,
-                 imgs,
-                 labels,
-                 transforms=None,
-                 target_transforms=None,
-                 video_level=False):
+    def __init__(
+        self, imgs, labels, transforms=None, target_transforms=None, video_level=False
+    ):
         self.imgs = imgs
         self.labels = labels
         self.transforms = transforms
@@ -206,18 +247,18 @@ class CelebDFDataset(Dataset):
 
     def __len__(self):
         return len(self.imgs)
-    
+
     def get_video_id(self, x):
         # get video id from path
-        return '/'.join(x.split('/')[:-3])
+        return "/".join(x.split("/")[:-3])
 
     def get_comp_id(self, x):
         # get comp id from path
-        return '_'.join(x.split('_')[:-1])
+        return "_".join(x.split("_")[:-1])
 
     def get_vid_from_comp_id(self, x):
         # get vid id from comp
-        return '/'.join(x.split('/')[:-3])
+        return "/".join(x.split("/")[:-3])
 
     def __getitem__(self, idx):
         # imread returns 0-255 HWC BGR numpy array
@@ -236,7 +277,7 @@ class CelebDFDataset(Dataset):
             print(f"COULD NOT LOAD IMG: {self.imgs[idx]}")
         label = self.labels[idx]
         if self.transforms:
-            image = self.transforms(image=img)['image']
+            image = self.transforms(image=img)["image"]
         else:
             image = ToTensorV2(img)
         if self.target_transforms:

@@ -5,7 +5,7 @@ def BarlowTwinsLoss(class_batch, lambda_param=5e-3):
 
     N, _ = class_batch.size()
     # cross-correlation matrix
-    c = torch.mm(class_batch[:N//2].T, class_batch[N//2:]) / (N//2)
+    c = torch.mm(class_batch[: N // 2].T, class_batch[N // 2 :]) / (N // 2)
     # invariance term
     on_diag = torch.diagonal(c).add(-1).pow(2).sum()
     # redundancy reduction term
@@ -17,5 +17,5 @@ def BarlowTwinsLoss(class_batch, lambda_param=5e-3):
 def off_diagonal(x):
     # return a flattened view of the off-diagonal elements of a square matrix
     n, m = x.shape
-    assert n == m 
-    return x.flatten()[:-1].view(n-1, n+1)[:, 1:].flatten() 
+    assert n == m
+    return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()

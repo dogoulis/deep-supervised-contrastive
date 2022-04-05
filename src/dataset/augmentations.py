@@ -82,19 +82,25 @@ def get_gan_validation_augmentations(resize_size=256, crop_size=224):
 
 
 def get_df_validation_augmentations(input_size=300, interpolation=cv2.INTER_LINEAR):
-    return A.Compose([
-        A.Resize(input_size, input_size, interpolation=interpolation),
-        A.Normalize(),
-        ToTensorV2()
-    ])
-
-
-def get_df_training_augmentations(df_aug=None, input_size=300, interpolation=cv2.INTER_LINEAR):
-    if df_aug == 'validation':
-        return A.Compose([
+    return A.Compose(
+        [
             A.Resize(input_size, input_size, interpolation=interpolation),
             A.Normalize(),
-            ToTensorV2()
-        ])
+            ToTensorV2(),
+        ]
+    )
+
+
+def get_df_training_augmentations(
+    df_aug=None, input_size=300, interpolation=cv2.INTER_LINEAR
+):
+    if df_aug == "validation":
+        return A.Compose(
+            [
+                A.Resize(input_size, input_size, interpolation=interpolation),
+                A.Normalize(),
+                ToTensorV2(),
+            ]
+        )
     else:
-        return ValueError('df_aug type not defined')
+        return ValueError("df_aug type not defined")

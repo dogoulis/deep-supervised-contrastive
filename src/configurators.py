@@ -54,7 +54,9 @@ def config_schedulers(optimizer, args):
     return scheduler
 
 
-def config_transforms(aug_type, gan_aug=None, df_aug=None, input_size=None, validation=False):
+def config_transforms(
+    aug_type, gan_aug=None, df_aug=None, input_size=None, validation=False
+):
     if aug_type == "gan":
         transforms = (
             aug.get_gan_validation_augmentations()
@@ -86,7 +88,7 @@ def config_df_datasets(
     batch_size=None,
     num_workers=None,
     transforms=None,
-    video_level=False
+    video_level=False,
 ):
     """
     return pl datamodule that you can use to get dataloaders
@@ -99,7 +101,7 @@ def config_df_datasets(
             num_workers=num_workers,
             transforms=transforms,
             manipulations=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures"],
-            video_level=video_level
+            video_level=video_level,
         )
     elif dataset == "celebdf":
         dm = CelebDF.CelebDF(

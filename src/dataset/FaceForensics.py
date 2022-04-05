@@ -21,17 +21,19 @@ class FaceForensics(pl.LightningDataModule):
     TODO: add quality selection
     """
 
-    def __init__(self,
-                 dataset_path,
-                 batch_size=32,
-                 num_workers=8,
-                 transforms=None,
-                 target_transforms=None,
-                 manipulations=None,
-                 sampling=None,
-                 balance=False,
-                 csv_names=None,
-                 video_level=False):
+    def __init__(
+        self,
+        dataset_path,
+        batch_size=32,
+        num_workers=8,
+        transforms=None,
+        target_transforms=None,
+        manipulations=None,
+        sampling=None,
+        balance=False,
+        csv_names=None,
+        video_level=False,
+    ):
         """
         Parameters
         ----------
@@ -85,73 +87,91 @@ class FaceForensics(pl.LightningDataModule):
         # DO NOT assign state in here
         if self.csv_names is not None:
             train_csv, val_csv, test_csv = self.csv_names
-            assert os.path.exists(os.path.join(self.dataset_path, train_csv)), 'train_csv provided is not a valid path'
-            assert os.path.exists(os.path.join(self.dataset_path, val_csv)), 'val_csv provided is not a valid path'
-            assert os.path.exists(os.path.join(self.dataset_path, test_csv)), 'test_csv provided is not a valid path'
-            print('CSV NAMES ACCEPTED, SKIPPING PREPARE_DATA ...')
+            assert os.path.exists(
+                os.path.join(self.dataset_path, train_csv)
+            ), "train_csv provided is not a valid path"
+            assert os.path.exists(
+                os.path.join(self.dataset_path, val_csv)
+            ), "val_csv provided is not a valid path"
+            assert os.path.exists(
+                os.path.join(self.dataset_path, test_csv)
+            ), "test_csv provided is not a valid path"
+            print("CSV NAMES ACCEPTED, SKIPPING PREPARE_DATA ...")
             return
 
-        real_videos_paths = os.path.join(self.dataset_path,
-                                         'original_sequences/'
-                                         'c23',
-                                         'videos',
-                                         '*.mp4')
+        real_videos_paths = os.path.join(
+            self.dataset_path, "original_sequences/" "c23", "videos", "*.mp4"
+        )
         real_videos_paths = glob(real_videos_paths)
         if self.manipulations is None:
-            fake_videos_paths = os.path.join(self.dataset_path,
-                                            'manipulated_sequences/',
-                                            '*',
-                                            'c23',
-                                            'videos',
-                                            '*.mp4')
+            fake_videos_paths = os.path.join(
+                self.dataset_path,
+                "manipulated_sequences/",
+                "*",
+                "c23",
+                "videos",
+                "*.mp4",
+            )
             fake_videos_paths = glob(fake_videos_paths)
         else:
-            fake_videos_paths = [item
-                                 for manipulation in self.manipulations
-                                 for item in glob(os.path.join(
-                                     self.dataset_path,
-                                     'manipulated_sequences',
-                                     manipulation,
-                                     'c23',
-                                     'videos',
-                                     '*.mp4'))]
+            fake_videos_paths = [
+                item
+                for manipulation in self.manipulations
+                for item in glob(
+                    os.path.join(
+                        self.dataset_path,
+                        "manipulated_sequences",
+                        manipulation,
+                        "c23",
+                        "videos",
+                        "*.mp4",
+                    )
+                )
+            ]
         # balance dataset
         if self.balance:
             # randomly pick fake videos
-            fake_videos_paths = random.sample(fake_videos_paths,
-                                              k=len(real_videos_paths))
+            fake_videos_paths = random.sample(
+                fake_videos_paths, k=len(real_videos_paths)
+            )
         # sample videos
-        if type(self.sampling) is str and self.sampling == 'one':
+        if type(self.sampling) is str and self.sampling == "one":
             # choose only one frame from each video
-            sampled_images = [random.sample(frames, k=1)[0]
-                              for video in real_videos_paths+fake_videos_paths
-                              for frames in glob(os.path.join(video,'seg*','*.png'))]
-            real_sampled_images = sampled_images[:len(real_videos_paths)]
-            fake_sampled_images = sampled_images[len(real_videos_paths):]
+            sampled_images = [
+                random.sample(frames, k=1)[0]
+                for video in real_videos_paths + fake_videos_paths
+                for frames in glob(os.path.join(video, "seg*", "*.png"))
+            ]
+            real_sampled_images = sampled_images[: len(real_videos_paths)]
+            fake_sampled_images = sampled_images[len(real_videos_paths) :]
         elif type(self.sampling) is float:  # sample according to ratio
             real_sampled_images = [
                 frame
                 for video in real_videos_paths
-                for frames in glob(os.path.join(video,'seg*','*.png'))
-                for frame in random.sample(frames, k=np.floor(self.sampling*len(frames)))
+                for frames in glob(os.path.join(video, "seg*", "*.png"))
+                for frame in random.sample(
+                    frames, k=np.floor(self.sampling * len(frames))
+                )
             ]
             fake_sampled_images = [
                 frame
                 for video in fake_videos_paths
-                for frames in glob(os.path.join(video,'seg*','*.png'))
-                for frame in random.sample(frames, k=np.floor(self.sampling*len(frames)))
+                for frames in glob(os.path.join(video, "seg*", "*.png"))
+                for frame in random.sample(
+                    frames, k=np.floor(self.sampling * len(frames))
+                )
             ]
         else:  # no sampling, include all frames
             assert self.sampling is None
             real_sampled_images = [
                 frame
                 for video in real_videos_paths
-                for frame in glob(os.path.join(video,'seg*','*.png'))
+                for frame in glob(os.path.join(video, "seg*", "*.png"))
             ]
             fake_sampled_images = [
                 frame
                 for video in fake_videos_paths
-                for frame in glob(os.path.join(video,'seg*','*.png'))
+                for frame in glob(os.path.join(video, "seg*", "*.png"))
             ]
         labels = [0] * len(real_sampled_images)
         labels.extend([1] * len(fake_sampled_images))
@@ -160,8 +180,8 @@ class FaceForensics(pl.LightningDataModule):
         # get json with video ids
         # load json and get all ids from video set
         all_ids = []
-        for video_set in ['train', 'val', 'test']:
-            splits_json = os.path.join(self.dataset_path, 'splits', video_set + '.json')
+        for video_set in ["train", "val", "test"]:
+            splits_json = os.path.join(self.dataset_path, "splits", video_set + ".json")
             assert os.path.exists(splits_json)
             with open(splits_json) as e:
                 json_array = json.load(e)
@@ -170,90 +190,113 @@ class FaceForensics(pl.LightningDataModule):
         train_ids, val_ids, test_ids = all_ids
         train_set, val_set, test_set = [], [], []
         for path, label in zip(images, labels):
-            vid_name = path.split('/')[-3]
-            first_id = vid_name.split('.')[0].split('_')[0]
+            vid_name = path.split("/")[-3]
+            first_id = vid_name.split(".")[0].split("_")[0]
             if first_id in train_ids:
                 train_set.append((path, label))
             elif first_id in val_ids:
                 val_set.append((path, label))
             else:
                 test_set.append((path, label))
-        
-        for name, files in zip(['train', 'val', 'test'],
-                               [train_set, val_set, test_set]):
-            df = pd.DataFrame(files, columns=['path', 'label'])
+
+        for name, files in zip(
+            ["train", "val", "test"], [train_set, val_set, test_set]
+        ):
+            df = pd.DataFrame(files, columns=["path", "label"])
             # convert paths to relative
             df.path = df.path.apply(
-                lambda x: '/'.join(x.split('/')[-6:]) if 'manipulated' not in x else '/'.join(x.split('/')[-7:])
+                lambda x: "/".join(x.split("/")[-6:])
+                if "manipulated" not in x
+                else "/".join(x.split("/")[-7:])
             )
-            df.to_csv(os.path.join(self.dataset_path, f'{name}.csv'))
+            df.to_csv(os.path.join(self.dataset_path, f"{name}.csv"))
 
     def setup(self, stage=None):
         # steps that should be done on every gpu
         # like splitting data, applying transfroms
-        if stage in (None, 'fit'):
-            train_df = pd.read_csv(os.path.join(
-                self.dataset_path,
-                self.csv_names[0] if self.csv_names is not None else 'train.csv')
+        if stage in (None, "fit"):
+            train_df = pd.read_csv(
+                os.path.join(
+                    self.dataset_path,
+                    self.csv_names[0] if self.csv_names is not None else "train.csv",
+                )
             )
-            train_df.path = train_df.path.apply(lambda x: os.path.join(self.dataset_path, x))
-            self.train_dataset = FaceForensicsDataset(train_df.path,
-                                                      train_df.label,
-                                                      self.transforms,
-                                                      self.target_transforms,
-                                                      self.video_level)
-            val_df = pd.read_csv(os.path.join(
-                self.dataset_path,
-                self.csv_names[1] if self.csv_names is not None else 'val.csv')
+            train_df.path = train_df.path.apply(
+                lambda x: os.path.join(self.dataset_path, x)
             )
-            val_df.path = val_df.path.apply(lambda x: os.path.join(self.dataset_path, x))
-            self.val_dataset = FaceForensicsDataset(val_df.path,
-                                                    val_df.label,
-                                                    self.transforms,
-                                                    self.target_transforms,
-                                                    self.video_level)
-        if stage in (None, 'test'):
-            test_df = pd.read_csv(os.path.join(
-                self.dataset_path,
-                self.csv_names[2] if self.csv_names is not None else 'test.csv')
+            self.train_dataset = FaceForensicsDataset(
+                train_df.path,
+                train_df.label,
+                self.transforms,
+                self.target_transforms,
+                self.video_level,
             )
-            test_df.path = test_df.path.apply(lambda x: os.path.join(self.dataset_path, x))
-            self.test_dataset = FaceForensicsDataset(test_df.path,
-                                                     test_df.label,
-                                                     self.transforms,
-                                                     self.target_transforms,
-                                                     self.video_level)
+            val_df = pd.read_csv(
+                os.path.join(
+                    self.dataset_path,
+                    self.csv_names[1] if self.csv_names is not None else "val.csv",
+                )
+            )
+            val_df.path = val_df.path.apply(
+                lambda x: os.path.join(self.dataset_path, x)
+            )
+            self.val_dataset = FaceForensicsDataset(
+                val_df.path,
+                val_df.label,
+                self.transforms,
+                self.target_transforms,
+                self.video_level,
+            )
+        if stage in (None, "test"):
+            test_df = pd.read_csv(
+                os.path.join(
+                    self.dataset_path,
+                    self.csv_names[2] if self.csv_names is not None else "test.csv",
+                )
+            )
+            test_df.path = test_df.path.apply(
+                lambda x: os.path.join(self.dataset_path, x)
+            )
+            self.test_dataset = FaceForensicsDataset(
+                test_df.path,
+                test_df.label,
+                self.transforms,
+                self.target_transforms,
+                self.video_level,
+            )
 
     def train_dataloader(self):
         # return train loader
-        return DataLoader(self.train_dataset,
-                          batch_size=self.batch_size,
-                          shuffle=True,
-                          num_workers=self.num_workers)
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+        )
 
     def val_dataloader(self):
         # return val loader
-        return DataLoader(self.val_dataset,
-                          batch_size=self.batch_size,
-                          shuffle=False,
-                          num_workers=self.num_workers)
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+        )
 
     def test_dataloader(self):
         # return test loader
-        return DataLoader(self.test_dataset,
-                          batch_size=self.batch_size,
-                          shuffle=False,
-                          num_workers=self.num_workers)
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+        )
 
 
 class FaceForensicsDataset(Dataset):
-
-    def __init__(self,
-                 imgs,
-                 labels,
-                 transforms=None,
-                 target_transforms=None,
-                 video_level=False):
+    def __init__(
+        self, imgs, labels, transforms=None, target_transforms=None, video_level=False
+    ):
         self.imgs = imgs
         self.labels = labels
         self.transforms = transforms
@@ -265,15 +308,15 @@ class FaceForensicsDataset(Dataset):
 
     def get_video_id(self, x):
         # get video id from path
-        return '/'.join(x.split('/')[:-2])
+        return "/".join(x.split("/")[:-2])
 
     def get_comp_id(self, x):
         # get comp id from path
-        return '_'.join(x.split('_')[:-1])
+        return "_".join(x.split("_")[:-1])
 
     def get_vid_from_comp_id(self, x):
         # get vid id from comp
-        return '/'.join(x.split('/')[:-2])
+        return "/".join(x.split("/")[:-2])
 
     def __getitem__(self, idx):
         # imread returns 0-255 HWC BGR numpy array
@@ -293,7 +336,7 @@ class FaceForensicsDataset(Dataset):
             print(f"COULD NOT LOAD IMG: {self.imgs[idx]}")
         label = self.labels[idx]
         if self.transforms:
-            image = self.transforms(image=img)['image']
+            image = self.transforms(image=img)["image"]
         if self.target_transforms:
             label = self.target_transforms(label)
         else:

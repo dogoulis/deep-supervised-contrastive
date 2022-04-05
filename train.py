@@ -10,10 +10,6 @@ from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
-from src.dataset import augmentations as aug
-from src.dataset import gan_datasets
-from src.dataset import FaceForensics
-from src.dataset import CelebDF
 from src.losses import BarlowTwinsLoss
 from src.model import Model
 from src.argparser_args import get_argparser
@@ -21,8 +17,7 @@ from src.configurators import (
     config_optimizers,
     config_schedulers,
     config_transforms,
-    config_df_datasets,
-    config_gan_datasets,
+    config_datasets,
 )
 
 # CMD ARGUMENTS
@@ -47,60 +42,35 @@ def main():
 
     # define training transforms/augmentations
     train_transforms = config_transforms(
-        args.augmentations_type,
-        df_aug=args.df_augmentations,
-        gan_aug=args.gan_augmentations,
+        mode=args.augmentations_mode,
+        type=args.augmentations_type,
+        input_size=args.input_size,
+        crop_size=args.crop_size,
         validation=False,
     )
     print(train_transforms)
     validation_transforms = config_transforms(
-        args.augmentations_type,
-        df_aug=args.df_augmentations,
-        gan_aug=args.gan_augmentations,
+        mode=args.augmentations_mode,
+        type=args.augmentations_type,
+        input_size=args.input_size,
+        crop_size=args.crop_size,
         validation=True,
     )
     print(validation_transforms)
 
-    if args.dataset_type == "gan":
-        # configure datasets
-        train_dataset = config_gan_datasets(
-            dataset=args.dataset,
-            root_path=args.dataset_path,
-            csv_path=args.train_path,
-            transforms=train_transforms,
-        )
-        val_dataset = config_gan_datasets(
-            dataset=args.dataset,
-            root_path=args.dataset_path,
-            csv_path=args.validation_pathh,
-            transforms=validation_transforms,
-        )
-
-        # defining data loader
-        train_dataloader = DataLoader(
-            train_dataset,
-            num_workers=args.workers,
-            batch_size=args.batch_size,
-            shuffle=True,
-        )
-        val_dataloader = DataLoader(
-            val_dataset,
-            num_workers=args.workers,
-            batch_size=args.batch_size,
-            shuffle=True,
-        )
-    elif args.dataset_type == "df":
-        dm = config_df_datasets(
-            dataset=args.dataset,
-            dataset_path=args.dataset_path,
-            batch_size=args.batch_size,
-            num_workers=args.num_workers,
-            transforms=train_transforms,
-            video_level=False,
-        )
-        dm.setup(stage="fit")
-        train_dataloader = dm.train_dataloader()
-        val_dataloader = dm.val_dataloader()
+    dm = config_datasets(
+        dataset=args.dataset,
+        dataset_path=args.dataset_path,
+        csv_paths=[args.train_path, args.validation_path, args.test_path],
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        train_transforms=train_transforms,
+        validation_transforms=validation_transforms,
+        video_level=False,
+    )
+    dm.setup(stage="fit")
+    train_dataloader = dm.train_dataloader()
+    val_dataloader = dm.val_dataloader()
 
     # define optimizer and scheduler
     optimizer = config_optimizers(model.parameters(), args)

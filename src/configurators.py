@@ -6,6 +6,7 @@ from torch import nn, optim
 
 from src.dataset import CelebDF, FaceForensics
 from src.dataset import augmentations as aug
+from src.dataset import GANDataset
 
 
 def config_optimizers(params, args):
@@ -55,39 +56,33 @@ def config_schedulers(optimizer, args):
 
 
 def config_transforms(
-    aug_type, gan_aug=None, df_aug=None, input_size=None, validation=False
+    mode=None, type=None, input_size=None, crop_size=None, validation=False
 ):
-    if aug_type == "gan":
+    if mode == "gan":
         transforms = (
-            aug.get_gan_validation_augmentations()
+            aug.get_gan_validation_augmentations(resize_size=input_size, crop_size=crop_size)
             if validation
-            else aug.get_gan_training_augmentations(gan_aug)
+            else aug.get_gan_training_augmentations(aug_type=type, resize_size=input_size, crop_size=crop_size)
         )
-    elif aug_type == "df":
+    elif mode == "df":
         transforms = (
             aug.get_df_validation_augmentations(input_size=input_size)
             if validation
-            else aug.get_df_training_augmentations(df_aug=df_aug, input_size=input_size)
+            else aug.get_df_training_augmentations(df_aug=type, input_size=input_size)
         )
     else:
         return ValueError("aug type not implemented")
     return transforms
 
 
-def config_gan_datasets(
-    dataset=None, root_path=None, csv_path=None, transforms=None, validation=False
-):
-    assert os.path.exists(dataset_path), "DATASET DOES NOT EXIST"
-    if dataset == "dataset2":
-        return gan_datasets.dataset2(root_path, csv_path, transforms)
-
-
-def config_df_datasets(
+def config_datasets(
     dataset=None,
     dataset_path=None,
+    csv_paths=None,
     batch_size=None,
     num_workers=None,
-    transforms=None,
+    train_transforms=None,
+    validation_transforms=None,
     video_level=False,
 ):
     """
@@ -99,7 +94,8 @@ def config_df_datasets(
             dataset_path=dataset_path,
             batch_size=batch_size,
             num_workers=num_workers,
-            transforms=transforms,
+            train_transforms=train_transforms,
+            validation_transforms=validation_transforms,
             manipulations=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures"],
             video_level=video_level,
         )
@@ -108,13 +104,22 @@ def config_df_datasets(
             dataset_path=dataset_path,
             batch_size=batch_size,
             num_workers=num_workers,
-            transforms=transforms,
+            train_transforms=train_transforms,
+            validation_transforms=validation_transforms,
             csv_names=["train_index.csv", "val_100.csv", "test_index.csv"],
             video_level=video_level,
         )
+    elif dataset == 'gandataset':
+        dm = GANDataset.GANDataset(
+            datasets_path=dataset_path,
+            csv_paths=csv_paths,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            train_transforms=train_transforms,
+            validation_transforms=validation_transforms,
+        )
     else:
-        dm = None
-        assert False, "DATASET NOT FOUND"
+        return ValueError('DATASET NAME NOT FOUND')
     print("DM defined")
     pl.seed_everything(1)
     dm.prepare_data()

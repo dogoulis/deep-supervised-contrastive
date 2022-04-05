@@ -109,11 +109,29 @@ def get_argparser():
     parser.add_argument(
         "-i",
         "--input_size",
+        type=int,
+        default=256,
+        required=True,
+        metavar="input_size",
+        help="input size for models",
+    )
+    parser.add_argument(
+        "-cc",
+        "--crop_size",
+        type=int,
+        default=None,
+        required=False,
+        metavar="crop_size",
+        help="crop size for models",
+    )
+    parser.add_argument(
+        "-am",
+        "--augmentations_mode",
         type=str,
         default=None,
         required=True,
-        metavar="input_size",
-        help="input size for mdoels",
+        metavar="augmentations_mode",
+        help="augmentations mode for transforms (gan or df)",
     )
     parser.add_argument(
         "-at",
@@ -123,33 +141,6 @@ def get_argparser():
         required=True,
         metavar="augmentations_type",
         help="augmentations type for the dataset",
-    )
-    parser.add_argument(
-        "-gan_aug",
-        "--gan_augmentations",
-        type=str,
-        default=None,
-        required=False,
-        metavar="gan_augmentations",
-        help="gan augmentations for the dataset",
-    )
-    parser.add_argument(
-        "-df_aug",
-        "--df_augmentations",
-        type=str,
-        default=None,
-        required=False,
-        metavar="df_augmentations",
-        help="df augmentations for the dataset",
-    )
-    parser.add_argument(
-        "-dt",
-        "--dataset_type",
-        type=str,
-        default=None,
-        required=True,
-        metavar="dataset_type",
-        help="gan or df dataset type",
     )
     parser.add_argument(
         "-d",
@@ -171,7 +162,7 @@ def get_argparser():
     )
     # DATA PATHS
     parser.add_argument(
-        "-tp",
+        "-trainp",
         "--train_path",
         type=str,
         default=None,
@@ -180,13 +171,22 @@ def get_argparser():
         help="Training dataset path for csv.",
     )
     parser.add_argument(
-        "-vp",
+        "-valp",
         "--validation_path",
         type=str,
         default=None,
         required=False,
-        metavar="validdation_path",
+        metavar="validation_path",
         help="Validation dataset path for csv.",
+    )
+    parser.add_argument(
+        "-testp",
+        "--test_path",
+        type=str,
+        default=None,
+        required=False,
+        metavar="test_path",
+        help="test dataset path for csv.",
     )
     # MODEL DETAILS
     parser.add_argument(

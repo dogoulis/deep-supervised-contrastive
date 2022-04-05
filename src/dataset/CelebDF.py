@@ -23,7 +23,8 @@ class CelebDF(pl.LightningDataModule):
         dataset_path,
         batch_size=32,
         num_workers=48,
-        transforms=None,
+        train_transforms=None,
+        validation_transforms=None,
         target_transforms=None,
         csv_names=None,
         sampling=1,
@@ -67,7 +68,8 @@ class CelebDF(pl.LightningDataModule):
         self.dataset_path = dataset_path
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.transforms = transforms
+        self.train_transforms = train_transforms
+        self.validation_transforms = validation_transforms
         self.target_transforms = target_transforms
         self.csv_names = csv_names
         self.train_csv = self.val_csv = self.test_csv = None
@@ -177,7 +179,7 @@ class CelebDF(pl.LightningDataModule):
             self.train_dataset = CelebDFDataset(
                 train_df.path,
                 train_df.label,
-                self.transforms,
+                self.train_transforms,
                 self.target_transformsm,
                 self.video_level,
             )
@@ -188,7 +190,7 @@ class CelebDF(pl.LightningDataModule):
             self.val_dataset = CelebDFDataset(
                 val_df.path,
                 val_df.label,
-                self.transforms,
+                self.validation_transforms,
                 self.target_transforms,
                 self.video_level,
             )
@@ -202,7 +204,7 @@ class CelebDF(pl.LightningDataModule):
             self.test_dataset = CelebDFDataset(
                 test_df.path,
                 test_df.label,
-                self.transforms,
+                self.validation_transforms,
                 self.target_transforms,
                 self.video_level,
             )
@@ -221,7 +223,7 @@ class CelebDF(pl.LightningDataModule):
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
-            shuffle=False,
+            shuffle=True,
             num_workers=self.num_workers,
         )
 

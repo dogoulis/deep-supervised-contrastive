@@ -6,6 +6,15 @@ def get_argparser():
     parser = argparse.ArgumentParser(description="Training arguments")
     # WANDB
     parser.add_argument(
+        "-ent",
+        "--entity",
+        type=str,
+        default='mever',
+        required=True,
+        metavar="entity",
+        help="Entity name, utilized for logging purposes in W&B.",
+    )
+    parser.add_argument(
         "-p",
         "--project_name",
         type=str,

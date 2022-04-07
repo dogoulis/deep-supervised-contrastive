@@ -29,6 +29,7 @@ print(args)
 def main():
     # initialize weights and biases
     wandb.init(
+        entity=args.entity,
         project=args.project_name,
         name=args.name,
         config=vars(args),

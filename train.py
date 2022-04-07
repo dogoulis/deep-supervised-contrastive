@@ -36,10 +36,11 @@ def main():
         group=args.run_group,
         save_code=True,
     )
+    args.device = torch.device(args.device)
 
     # model definition
     model = Model(config=vars(args))
-    model = model.to(args.device)
+    model.to(args.device)
 
     # define training transforms/augmentations
     train_transforms = config_transforms(

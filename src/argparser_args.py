@@ -231,7 +231,7 @@ def get_argparser():
     parser.add_argument(
         "-dev",
         "--device",
-        type=int,
+        type=str,
         default=None,
         required=True,
         metavar="device",

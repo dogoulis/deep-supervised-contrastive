@@ -9,7 +9,7 @@ def get_argparser():
         "-ent",
         "--entity",
         type=str,
-        default='mever',
+        default="mever",
         required=True,
         metavar="entity",
         help="Entity name, utilized for logging purposes in W&B.",

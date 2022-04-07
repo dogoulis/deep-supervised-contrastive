@@ -133,10 +133,12 @@ class FaceForensics(pl.LightningDataModule):
             ]
         # balance dataset
         if self.balance:
-            # randomly pick fake videos
-            fake_videos_paths = random.sample(
-                fake_videos_paths, k=len(real_videos_paths)
+            # oversample real videos to have the same number of
+            # real and fake videos
+            real_sampled_videos = random.choices(
+                real_videos_paths, k=len(fake_videos_paths) - len(real_videos_paths)
             )
+            real_videos_paths += real_sampled_videos
         # sample videos
         if type(self.sampling) is str and self.sampling == "one":
             # choose only one frame from each video

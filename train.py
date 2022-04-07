@@ -6,7 +6,7 @@ from wsgiref import validate
 import numpy as np
 import torch
 import wandb
-from torch import nn
+from torch import device, nn
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 

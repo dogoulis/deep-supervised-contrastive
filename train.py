@@ -85,6 +85,7 @@ def main():
         fp16_scaler = torch.cuda.amp.GradScaler()
 
     # checkpointing - directories
+    save_model_dir = args.save_model_path
     if not os.path.exists(args.save_model_path):
         os.makedirs(args.save_model_path)
     if not os.path.exists(args.save_backbone_path):

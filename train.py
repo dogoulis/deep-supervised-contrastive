@@ -1,7 +1,7 @@
 import argparse
 import os
 from random import shuffle
-from wsgiref import validate
+
 
 import numpy as np
 import torch
@@ -106,7 +106,7 @@ def main():
             fp16_scaler=fp16_scaler,
             epoch=epoch,
         )
-        val_results = validate(
+        val_results = validate_epoch(
             model, val_dataloader=val_dataloader, args=args, criterion=criterion
         )
 

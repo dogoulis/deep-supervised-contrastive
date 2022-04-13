@@ -281,14 +281,15 @@ class CelebDFDataset(Dataset):
                 break
         else:
             print(f"COULD NOT LOAD IMG: {self.imgs[idx]}")
-        label = self.labels[idx]
+
         if self.transforms is None:
             self.transforms = ToTensorV2()
         image = self.transforms(image=img)["image"]
 
-        if self.target_transforms:
-            label = self.target_transforms(label)
-        else:
-            label = torch.tensor(label).float()
+        label = self.labels[idx]
+        if self.target_transforms is None:
+            self.target_transforms = lambda x : torch.tensor(x).float()
+        label = self.target_transforms(label)
+
         id = self.imgs[idx]
         return image, id, label

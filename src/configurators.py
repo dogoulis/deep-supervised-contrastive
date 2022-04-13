@@ -51,6 +51,11 @@ def config_schedulers(optimizer, args):
         scheduler = optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max=args.epochs, verbose=True
         )
+    elif args.scheduler == "cosinewarm":
+        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            optimizer, T_0=2, T_mult=2, eta_min=0.0001, verbose=True
+        )
+
     return scheduler
 
 
@@ -101,6 +106,7 @@ def config_datasets(
             validation_transforms=validation_transforms,
             manipulations=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures"],
             video_level=video_level,
+            balance=True,
         )
     elif dataset == "celebdf":
         dm = CelebDF.CelebDF(

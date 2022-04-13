@@ -86,6 +86,15 @@ def get_argparser():
         metavar="weight_decay",
         help="Weight decay of the optimizer (default: 1e-5).",
     )
+    parser.add_argument(
+        "-m",
+        "--momentum",
+        type=float,
+        default=0.,
+        required=False,
+        metavar="momentum",
+        help="Momentum of the optimizer (default: 0.).",
+    )
     ## SCHEDULE
     parser.add_argument(
         "-sch",

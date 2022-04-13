@@ -282,10 +282,10 @@ class CelebDFDataset(Dataset):
         else:
             print(f"COULD NOT LOAD IMG: {self.imgs[idx]}")
         label = self.labels[idx]
-        if self.transforms:
-            image = self.transforms(image=img)["image"]
-        else:
-            image = ToTensorV2(img)
+        if self.transforms is None:
+            self.transforms = ToTensorV2()
+        image = self.transforms(image=img)["image"]
+
         if self.target_transforms:
             label = self.target_transforms(label)
         else:

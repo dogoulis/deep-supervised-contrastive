@@ -53,7 +53,7 @@ def config_schedulers(optimizer, args):
         )
     elif args.scheduler == "cosinewarm":
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            optimizer, T_0=2, T_mult=2, eta_min=0.0001, verbose=True
+            optimizer, T_0=2, T_mult=args.tmult, eta_min=0.0001, verbose=True
         )
 
     return scheduler

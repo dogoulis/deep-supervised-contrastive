@@ -123,6 +123,16 @@ def get_argparser():
         metavar="scheduler_gamma",
         help="scheduler gamma (default: 0.1)",
     )
+    # add int argument for tmult with default value of 2
+    parser.add_argument(
+        "-tmult",
+        "--tmult",
+        type=int,
+        default=2,
+        required=False,
+        metavar="tmult",
+        help="tmult (default: 2)",
+    )
     # DATASET
     parser.add_argument(
         "-i",

@@ -14,7 +14,6 @@ def config_optimizers(params, args):
         optimizer = optim.SGD(
             params,
             lr=args.learning_rate,
-            momentum=args.momentum,
             weight_decay=args.weight_decay,
         )
     elif args.optimizer == "adam":

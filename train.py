@@ -2,13 +2,14 @@ import argparse
 import os
 from random import shuffle
 
-
 import numpy as np
 import torch
+import torch.distributed as dist
 import wandb
 from torch import device, nn
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
+import torch.multiprocessing as mp
 
 from src.losses import BarlowTwinsLoss
 from src.model import Model
@@ -27,6 +28,13 @@ print(args)
 
 
 def main():
+    args.gpus = torch.cuda.device_count()
+    assert args.gpus >= args.world_size, f"gpus: {args.gpus} < world_size: {args.world_size}"
+
+    # print rank, world size and gpu
+    print(f"world size: {args.world_size}")
+    print(f"gpu: {args.gpus}")
+
     # initialize weights and biases
     wandb.init(
         entity=args.entity,
@@ -36,11 +44,45 @@ def main():
         group=args.run_group,
         save_code=True,
     )
-    args.device = torch.device(args.device)
+
+    mp.spawn(
+        run,
+        args=(args,),
+        nprocs=args.world_size,
+        join=True,
+    )
+
+def setup(rank, world_size):
+    """
+    Setup for distributed training
+    """
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = '8890'
+
+    print('os env set')
+
+    # initialize the process group
+    dist.init_process_group(
+        backend="nccl", init_method="env://", world_size=world_size, rank=rank
+    )
+
+def cleanup():
+    dist.destroy_process_group()
+
+def run(rank, args):
+    print(f"Running DDP with model parallel example on rank {rank}.")
+    setup(rank, args.world_size)
+
+    print('setup done')
+
+    args.device = torch.device(rank)
+    print(f"Using device: {args.device}")
 
     # model definition
-    model = Model(config=vars(args))
-    model.to(args.device)
+    model = Model(config=vars(args)).to(args.device)
+    model = nn.parallel.DistributedDataParallel(model, device_ids=[rank])
+
+    print('model defined')
 
     # define training transforms/augmentations
     train_transforms = config_transforms(
@@ -59,6 +101,8 @@ def main():
         validation=True,
     )
 
+    print('transforms defined')
+
     dm = config_datasets(
         dataset=args.dataset,
         dataset_path=args.dataset_path,
@@ -68,10 +112,16 @@ def main():
         train_transforms=train_transforms,
         validation_transforms=validation_transforms,
         video_level=False,
+        pin_memory=args.pin_memory,
+        distributed=args.distributed,
+        world_size=args.world_size,
+        rank=rank,
     )
     dm.setup(stage="fit")
     train_dataloader = dm.train_dataloader()
     val_dataloader = dm.val_dataloader()
+
+    print('dataloaders defined')
 
     # define optimizer and scheduler
     optimizer = config_optimizers(model.parameters(), args)
@@ -97,6 +147,7 @@ def main():
     print("Training starts...")
     for epoch in range(args.epochs):
         wandb.log({"epoch": epoch})
+        wandb.log({'learning_rate': scheduler.get_lr()[0]})
         train_epoch(
             model,
             train_dataloader=train_dataloader,
@@ -117,6 +168,8 @@ def main():
             min_loss = val_results["val_loss"].copy()
             torch.save(model.state_dict(), os.path.join(save_model_dir, "best-ckpt.pt"))
 
+    cleanup()
+
 
 def train_epoch(
     model,
@@ -132,11 +185,12 @@ def train_epoch(
     model.train()
     epoch += 1
     running_loss = []
+    bce_running_loss = []
     pbar = tqdm(train_dataloader, desc=f"epoch {epoch}.", unit="iter")
 
     for batch, (x, id, y) in enumerate(pbar):
-        x = x.to(args.device)
-        y = y.to(args.device)
+        x = x.cuda()
+        y = y.cuda()
 
         # select the real and fake indexes at batches
         real_idxs = y == 0
@@ -153,9 +207,12 @@ def train_epoch(
             # pass the batch through the classifier
             output = model.fc(model(x)).flatten()
             # mixed loss calculation
+            bce_loss = criterion(output, y)
             loss = (
-                criterion(output, y) + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
+                bce_loss + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
             )
+            # get the logarithm of loss
+            loss = loss.log()
 
         # mixed-precesion if given in arguments
         if fp16_scaler:
@@ -166,9 +223,11 @@ def train_epoch(
             loss.backward()
             optimizer.step()
         running_loss.append(loss.detach().cpu().numpy())
+        bce_running_loss.append(bce_loss.detach().cpu().numpy())
         # log mean loss for the last 10 batches:
         if (batch + 1) % 10 == 0:
             wandb.log({"train-steploss": np.mean(running_loss[-10:])})
+            wandb.log({"train-bceloss": np.mean(bce_running_loss[-10:])})
 
     # scheduler
     scheduler.step()
@@ -185,8 +244,8 @@ def validate_epoch(model, val_dataloader, args, criterion):
 
     running_loss, y_true, y_pred = [], [], []
     for x, id, y in val_dataloader:
-        x = x.to(args.device)
-        y = y.to(args.device).unsqueeze(1)
+        x = x.cuda()
+        y = y.cuda().unsqueeze(1)
 
         outputs = model.fc(model(x))
         loss = criterion(outputs, y)
@@ -207,6 +266,18 @@ def validate_epoch(model, val_dataloader, args, criterion):
     acc = 100.0 * np.mean(y_true == y_pred)
     wandb.log({"validation-accuracy": acc})
     return {"val_acc": acc, "val_loss": val_loss}
+
+
+def find_free_port():
+    # find a free port
+    """ https://stackoverflow.com/questions/1365265/on-localhost-how-do-i-pick-a-free-port-number """
+    import socket
+    from contextlib import closing
+
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(('', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return str(s.getsockname()[1])
 
 
 if __name__ == "__main__":

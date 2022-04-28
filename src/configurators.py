@@ -1,4 +1,5 @@
 import os
+import argparse
 
 import pytorch_lightning as pl
 import torch_optimizer
@@ -82,49 +83,51 @@ def config_transforms(
     return transforms
 
 
-def config_datasets(
-    dataset=None,
-    dataset_path=None,
-    csv_paths=None,
-    batch_size=None,
-    num_workers=None,
-    train_transforms=None,
-    validation_transforms=None,
-    video_level=False,
-):
+def config_datasets(**kwargs):
     """
     return pl datamodule that you can use to get dataloaders
     """
-    assert os.path.exists(dataset_path), "DATASET DOES NOT EXIST"
-    if dataset == "ff":
+    # convert kwargs to namespace
+    kwargs = argparse.Namespace(**kwargs)
+    assert os.path.exists(kwargs.dataset_path), "DATASET DOES NOT EXIST"
+    if kwargs.dataset == "ff":
         dm = FaceForensics.FaceForensics(
-            dataset_path=dataset_path,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            train_transforms=train_transforms,
-            validation_transforms=validation_transforms,
+            dataset_path=kwargs.dataset_path,
+            batch_size=kwargs.batch_size,
+            num_workers=kwargs.num_workers,
+            train_transforms=kwargs.train_transforms,
+            validation_transforms=kwargs.validation_transforms,
             manipulations=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures"],
-            video_level=video_level,
+            video_level=kwargs.video_level,
             balance=True,
+            pin_memory=kwargs.pin_memory,
+            distributed=kwargs.distributed,
+            rank=kwargs.rank,
         )
-    elif dataset == "celebdf":
+    elif kwargs.dataset == "celebdf":
         dm = CelebDF.CelebDF(
-            dataset_path=dataset_path,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            train_transforms=train_transforms,
-            validation_transforms=validation_transforms,
+            dataset_path=kwargs.dataset_path,
+            batch_size=kwargs.batch_size,
+            num_workers=kwargs.num_workers,
+            train_transforms=kwargs.train_transforms,
+            validation_transforms=kwargs.validation_transforms,
             csv_names=["train_index.csv", "val_100.csv", "test_index.csv"],
-            video_level=video_level,
+            video_level=kwargs.video_level,
+            pin_memory=kwargs.pin_memory,
+            distributed=kwargs.distributed,
+            rank=kwargs.rank,
         )
-    elif dataset == "gandataset":
+    elif kwargs.dataset == "gandataset":
         dm = GANDataset.GANDataset(
-            datasets_path=dataset_path,
-            csv_paths=csv_paths,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            train_transforms=train_transforms,
-            validation_transforms=validation_transforms,
+            datasets_path=kwargs.dataset_path,
+            csv_paths=kwargs.csv_paths,
+            batch_size=kwargs.batch_size,
+            num_workers=kwargs.num_workers,
+            train_transforms=kwargs.train_transforms,
+            validation_transforms=kwargs.validation_transforms,
+            pin_memory=kwargs.pin_memory,
+            distributed=kwargs.distributed,
+            rank=kwargs.rank,
         )
     else:
         return ValueError("DATASET NAME NOT FOUND")

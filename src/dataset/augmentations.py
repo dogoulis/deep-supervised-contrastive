@@ -102,5 +102,13 @@ def get_df_training_augmentations(
                 ToTensorV2(),
             ]
         )
+    elif df_aug == "train":
+        return A.Compose(
+            [
+                A.Resize(input_size, input_size, interpolation=interpolation),
+                A.Normalize(),
+                ToTensorV2(),
+            ]
+        )
     else:
         return ValueError("df_aug type not defined")

@@ -11,6 +11,7 @@ import torch
 from albumentations.pytorch import ToTensorV2
 from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
 
 
 class FaceForensics(pl.LightningDataModule):
@@ -35,6 +36,10 @@ class FaceForensics(pl.LightningDataModule):
         balance=False,
         csv_names=None,
         video_level=False,
+        pin_memory=False,
+        distributed=False,
+        world_size=-1,
+        rank=-1,
     ):
         """
         Parameters
@@ -84,6 +89,10 @@ class FaceForensics(pl.LightningDataModule):
         self.balance = balance
         self.csv_names = csv_names
         self.video_level = video_level
+        self.pin_memory = pin_memory
+        self.distributed = distributed
+        self.world_size = world_size
+        self.rank = rank
 
     def prepare_data(self):
         # this gets called one time by only one gpu
@@ -278,30 +287,48 @@ class FaceForensics(pl.LightningDataModule):
         # return train loader
         return DataLoader(
             self.train_dataset,
+            batch_size=self.batch_size,
             num_workers=self.num_workers,
-            batch_sampler=get_batch_sampler(
-                dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True
-            ),
+            pin_memory=self.pin_memory,
+            sampler=DistributedSampler(
+                self.train_dataset,
+                num_replicas=self.world_size,
+                rank=self.rank,
+            )
+            if self.distributed
+            else None,
         )
 
     def val_dataloader(self):
-        # return val loader
+        # return val dataloader
         return DataLoader(
             self.val_dataset,
+            batch_size=self.batch_size,
             num_workers=self.num_workers,
-            batch_sampler=get_batch_sampler(
-                dataset=self.val_dataset, batch_size=self.batch_size, shuffle=True
-            ),
+            pin_memory=self.pin_memory,
+            sampler=DistributedSampler(
+                self.val_dataset,
+                num_replicas=self.world_size,
+                rank=self.rank,
+            )
+            if self.distributed
+            else None,
         )
 
     def test_dataloader(self):
-        # return test loader
+        # return test dataloader
         return DataLoader(
             self.test_dataset,
+            batch_size=self.batch_size,
             num_workers=self.num_workers,
-            batch_sampler=get_batch_sampler(
-                dataset=self.test_dataset, batch_size=self.batch_size, shuffle=False
-            ),
+            pin_memory=self.pin_memory,
+            sampler=DistributedSampler(
+                self.test_dataset,
+                num_replicas=self.world_size,
+                rank=self.rank,
+            )
+            if self.distributed
+            else None,
         )
 
 

@@ -90,7 +90,7 @@ def get_argparser():
         "-m",
         "--momentum",
         type=float,
-        default=0.,
+        default=0.0,
         required=False,
         metavar="momentum",
         help="Momentum of the optimizer (default: 0.).",
@@ -252,7 +252,7 @@ def get_argparser():
         "--device",
         type=str,
         default=None,
-        required=True,
+        required=False,
         metavar="device",
         help="Device used during training",
     )
@@ -272,6 +272,35 @@ def get_argparser():
         action="store_true",
         required=False,
         help="boolean for using mixed precision.",
+    )
+    # DISTRIBUTED TRAINING AND GPUS
+    # add boolean argument for pin_memory
+    parser.add_argument(
+        "-pin",
+        "--pin_memory",
+        default=False,
+        action="store_true",
+        required=False,
+        help="boolean for using pin_memory.",
+    )
+    # add boolean argument for distributed training
+    parser.add_argument(
+        "-dist",
+        "--distributed",
+        default=False,
+        action="store_true",
+        required=False,
+        help="boolean for using distributed training.",
+    )
+    # add int argument for world_size
+    parser.add_argument(
+        "-ws",
+        "--world_size",
+        type=int,
+        default=-1,
+        required=False,
+        metavar="world_size",
+        help="world size for distributed training.",
     )
 
     return parser

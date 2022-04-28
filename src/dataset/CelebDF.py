@@ -288,7 +288,7 @@ class CelebDFDataset(Dataset):
 
         label = self.labels[idx]
         if self.target_transforms is None:
-            self.target_transforms = lambda x : torch.tensor(x).float()
+            self.target_transforms = lambda x: torch.tensor(x).float()
         label = self.target_transforms(label)
 
         id = self.imgs[idx]

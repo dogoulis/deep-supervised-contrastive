@@ -1,6 +1,7 @@
 import albumentations as A
 import cv2
 from albumentations.pytorch.transforms import ToTensorV2
+import torchvision.transforms as TT
 
 
 def get_gan_training_augmentations(aug_type, resize_size=256, crop_size=224):
@@ -94,13 +95,18 @@ def get_df_validation_augmentations(input_size=300, interpolation=cv2.INTER_LINE
 def get_df_training_augmentations(
     df_aug=None, input_size=300, interpolation=cv2.INTER_LINEAR
 ):
-    if df_aug == "validation":
-        return A.Compose(
-            [
-                A.Resize(input_size, input_size, interpolation=interpolation),
-                A.Normalize(),
-                ToTensorV2(),
-            ]
-        )
+    if df_aug == "rand":
+        return A.Compose([
+            A.core.composition.SomeOf([
+                    A.transforms.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2),
+                    A.geometric.rotate.Rotate(limit=30, interpolation=cv2.INTER_CUBIC),
+                    A.transforms.RandomGamma(),
+                    A.transforms.Sharpen(alpha=(0, 0.2), lightness=(0, 0.2)),
+                    A.geometric.Affine(scale=(0.9, 1.1), translate_percent=(0, 0.1))],
+            n=2),
+            A.Resize(height=256, width=256, interpolation=cv2.INTER_CUBIC, always_apply=True),
+            A.Normalize(),
+            ToTensorV2(),
+        ])
     else:
         return ValueError("df_aug type not defined")

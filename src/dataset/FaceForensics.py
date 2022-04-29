@@ -11,6 +11,7 @@ import torch
 from albumentations.pytorch import ToTensorV2
 from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
+import albumentations as A
 
 
 class FaceForensics(pl.LightningDataModule):
@@ -348,7 +349,10 @@ class FaceForensicsDataset(Dataset):
             print(f"COULD NOT LOAD IMG: {self.imgs[idx]}")
         label = self.labels[idx]
         if self.transforms:
-            image = self.transforms(image=img)["image"]
+            if isinstance(self.transforms, A.core.composition.Compose):
+                image = self.transforms(image=img)["image"]
+            else:
+                image = self.transforms(img)
         if self.target_transforms:
             label = self.target_transforms(label)
         else:

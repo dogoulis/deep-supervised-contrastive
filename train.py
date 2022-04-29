@@ -1,6 +1,6 @@
 import argparse
 import os
-from random import shuffle
+from random import shuffle, triangular
 
 
 import numpy as np
@@ -45,18 +45,18 @@ def main():
     # define training transforms/augmentations
     train_transforms = config_transforms(
         mode=args.augmentations_mode,
+        validation=False,
         type=args.augmentations_type,
         input_size=args.input_size,
         crop_size=args.crop_size,
-        validation=False,
     )
+    print(train_transforms)
 
     validation_transforms = config_transforms(
         mode=args.augmentations_mode,
-        type=args.augmentations_type,
+        validation=True,
         input_size=args.input_size,
         crop_size=args.crop_size,
-        validation=True,
     )
 
     dm = config_datasets(

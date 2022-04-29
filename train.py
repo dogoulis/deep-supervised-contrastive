@@ -35,16 +35,6 @@ def main():
     print(f"world size: {args.world_size}")
     print(f"gpu: {args.gpus}")
 
-    # initialize weights and biases
-    wandb.init(
-        entity=args.entity,
-        project=args.project_name,
-        name=args.name,
-        config=vars(args),
-        group=args.run_group,
-        save_code=True,
-    )
-
     mp.spawn(
         run,
         args=(args,),
@@ -57,7 +47,7 @@ def setup(rank, world_size):
     Setup for distributed training
     """
     os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '8890'
+    os.environ['MASTER_PORT'] = '37149'
 
     print('os env set')
 
@@ -74,6 +64,17 @@ def run(rank, args):
     setup(rank, args.world_size)
 
     print('setup done')
+
+    if rank == 0:
+        # initialize weights and biases
+        wandb.init(
+            entity=args.entity,
+            project=args.project_name,
+            name=args.name,
+            config=vars(args),
+            group=args.run_group,
+            save_code=True,
+        )
 
     args.device = torch.device(rank)
     print(f"Using device: {args.device}")
@@ -146,12 +147,14 @@ def run(rank, args):
 
     print("Training starts...")
     for epoch in range(args.epochs):
-        wandb.log({"epoch": epoch})
-        wandb.log({'learning_rate': scheduler.get_lr()[0]})
+        if rank == 0:
+            wandb.log({"epoch": epoch})
+            wandb.log({'learning_rate': scheduler.get_lr()[0]})
+
         train_epoch(
+            rank,
             model,
             train_dataloader=train_dataloader,
-            args=args,
             optimizer=optimizer,
             criterion=criterion,
             scheduler=scheduler,
@@ -159,7 +162,7 @@ def run(rank, args):
             epoch=epoch,
         )
         val_results = validate_epoch(
-            model, val_dataloader=val_dataloader, args=args, criterion=criterion
+            rank, model, val_dataloader=val_dataloader, criterion=criterion
         )
 
         # TODO add more functionality here
@@ -172,9 +175,9 @@ def run(rank, args):
 
 
 def train_epoch(
+    rank,
     model,
     train_dataloader,
-    args,
     optimizer,
     criterion,
     scheduler=None,
@@ -226,20 +229,26 @@ def train_epoch(
         bce_running_loss.append(bce_loss.detach().cpu().numpy())
         # log mean loss for the last 10 batches:
         if (batch + 1) % 10 == 0:
-            wandb.log({"train-steploss": np.mean(running_loss[-10:])})
-            wandb.log({"train-bceloss": np.mean(bce_running_loss[-10:])})
+            if rank == 0:
+                wandb.log(
+                    {
+                        "train_loss": np.mean(running_loss),
+                        "train_bce_loss": np.mean(bce_running_loss),
+                    }
+                )
 
     # scheduler
     scheduler.step()
     train_loss = np.mean(running_loss)
-    wandb.log({"train-epoch-loss": train_loss})
+    if rank == 0:
+        wandb.log({"train_loss": train_loss})
 
     return train_loss
 
 
 # define validation logic
 @torch.no_grad()
-def validate_epoch(model, val_dataloader, args, criterion):
+def validate_epoch(rank, model, val_dataloader,  criterion):
     model.eval()
 
     running_loss, y_true, y_pred = [], [], []
@@ -262,9 +271,9 @@ def validate_epoch(model, val_dataloader, args, criterion):
     y_true = torch.cat(y_true, 0).numpy()
     y_pred = torch.cat(y_pred, 0).numpy()
     val_loss = np.mean(running_loss)
-    wandb.log({"validation-loss": val_loss})
     acc = 100.0 * np.mean(y_true == y_pred)
-    wandb.log({"validation-accuracy": acc})
+    if rank == 0:
+        wandb.log({"validation-loss": val_loss, "validation-accuracy": acc})
     return {"val_acc": acc, "val_loss": val_loss}
 
 

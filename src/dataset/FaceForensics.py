@@ -290,13 +290,7 @@ class FaceForensics(pl.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            sampler=DistributedSampler(
-                self.train_dataset,
-                num_replicas=self.world_size,
-                rank=self.rank,
-            )
-            if self.distributed
-            else None,
+            sampler=DistributedSampler(self.train_dataset) if self.distributed else None,
         )
 
     def val_dataloader(self):
@@ -306,13 +300,7 @@ class FaceForensics(pl.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            sampler=DistributedSampler(
-                self.val_dataset,
-                num_replicas=self.world_size,
-                rank=self.rank,
-            )
-            if self.distributed
-            else None,
+            sampler=DistributedSampler(self.val_dataset) if self.distributed else None,
         )
 
     def test_dataloader(self):
@@ -322,13 +310,7 @@ class FaceForensics(pl.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            sampler=DistributedSampler(
-                self.test_dataset,
-                num_replicas=self.world_size,
-                rank=self.rank,
-            )
-            if self.distributed
-            else None,
+            sampler=DistributedSampler(self.test_dataset) if self.distributed else None,
         )
 
 

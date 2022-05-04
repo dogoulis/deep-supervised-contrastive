@@ -175,6 +175,8 @@ def train_epoch(
     # scheduler
     if scheduler is not None:
         scheduler.step()
+        wandb.log({'learning_rate': scheduler.get_lr()[0]})
+
     train_loss = np.mean(running_loss)
     wandb.log({"train-epoch-loss": train_loss})
 

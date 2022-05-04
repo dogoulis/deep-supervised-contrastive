@@ -39,8 +39,9 @@ def main():
     args.device = torch.device(args.device)
 
     # model definition
+    torch.multiprocessing.set_sharing_strategy('file_system')
     model = Model(config=vars(args))
-    model.to(args.device)
+    model = torch.nn.DataParallel(model).to(args.device)
 
     # define training transforms/augmentations
     train_transforms = config_transforms(
@@ -50,7 +51,6 @@ def main():
         input_size=args.input_size,
         crop_size=args.crop_size,
     )
-    print(train_transforms)
 
     validation_transforms = config_transforms(
         mode=args.augmentations_mode,
@@ -148,10 +148,10 @@ def train_epoch(
         optimizer.zero_grad()
         with torch.cuda.amp.autocast(fp16_scaler is not None):
             # pass the real and fake batches through the backbone network and then through the projectors
-            z_real = model.real_projector(model(real_class_batch))
-            z_fake = model.fake_projector(model(fake_class_batch))
+            z_real = model.module.real_projector(model(real_class_batch))
+            z_fake = model.module.fake_projector(model(fake_class_batch))
             # pass the batch through the classifier
-            output = model.fc(model(x)).flatten()
+            output = model.module.fc(model(x)).flatten()
             # mixed loss calculation
             loss = (
                 criterion(output, y) + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
@@ -193,7 +193,7 @@ def validate_epoch(model, val_dataloader, args, criterion):
         x = x.to(args.device)
         y = y.to(args.device).unsqueeze(1)
 
-        outputs = model.fc(model(x))
+        outputs = model.module.fc(model(x))
         loss = criterion(outputs, y)
 
         # loss calculation over batch

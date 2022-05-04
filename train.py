@@ -156,6 +156,8 @@ def train_epoch(
             loss = (
                 criterion(output, y) + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
             )
+            # get the logarithm of loss
+            loss = loss.log()
 
         # mixed-precesion if given in arguments
         if fp16_scaler:
@@ -171,7 +173,8 @@ def train_epoch(
             wandb.log({"train-steploss": np.mean(running_loss[-10:])})
 
     # scheduler
-    scheduler.step()
+    if scheduler is not None:
+        scheduler.step()
     train_loss = np.mean(running_loss)
     wandb.log({"train-epoch-loss": train_loss})
 

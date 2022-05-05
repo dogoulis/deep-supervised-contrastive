@@ -108,5 +108,7 @@ def get_df_training_augmentations(
             A.Normalize(),
             ToTensorV2(),
         ])
+    elif df_aug == "validation":
+        return get_df_validation_augmentations(input_size, interpolation)
     else:
         return ValueError("df_aug type not defined")

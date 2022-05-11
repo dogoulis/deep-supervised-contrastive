@@ -6,7 +6,6 @@ from glob import glob
 import cv2
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
 import torch
 from albumentations.pytorch import ToTensorV2
 from src.dataset.utils import get_batch_sampler
@@ -14,7 +13,7 @@ from torch.utils.data import DataLoader, Dataset
 import albumentations as A
 
 
-class FaceForensics(pl.LightningDataModule):
+class FaceForensics():
     """
     DataModule to load FaceForensics++ dataset.
     Takes into account sampling, balancing and specific
@@ -48,8 +47,9 @@ class FaceForensics(pl.LightningDataModule):
             (default is 32)
         num_workers : int, optional
             the number of workers for the DataLoaders (default is 48)
-        transforms : Compose object from Albumentations, optional
+        train_transforms : Compose object from Albumentations, optional
             transforms to be applied to the images before returning them
+        validation_transforms : same as train but for validation
         target_transforms : Compose object from Albumentations, optional
             transforms to be applied to the targets or labels before
             returning them
@@ -86,9 +86,6 @@ class FaceForensics(pl.LightningDataModule):
         self.csv_names = csv_names
         self.video_level = video_level
 
-    def prepare_data(self):
-        # this gets called one time by only one gpu
-        # DO NOT assign state in here
         if self.csv_names is not None:
             train_csv, val_csv, test_csv = self.csv_names
             assert os.path.exists(
@@ -136,6 +133,7 @@ class FaceForensics(pl.LightningDataModule):
         if self.balance:
             # oversample real videos to have the same number of
             # real and fake videos
+            print("BALANCING DATASET ...")
             real_sampled_videos = random.choices(
                 real_videos_paths, k=len(fake_videos_paths) - len(real_videos_paths)
             )
@@ -217,63 +215,59 @@ class FaceForensics(pl.LightningDataModule):
             )
             df.to_csv(os.path.join(self.dataset_path, f"{name}.csv"))
 
-    def setup(self, stage=None):
-        # steps that should be done on every gpu
-        # like splitting data, applying transfroms
-        if stage in (None, "fit"):
-            # TRAIN DATASET
-            train_df = pd.read_csv(
-                os.path.join(
-                    self.dataset_path,
-                    self.csv_names[0] if self.csv_names is not None else "train.csv",
-                )
+        # TRAIN DATASET
+        train_df = pd.read_csv(
+            os.path.join(
+                self.dataset_path,
+                self.csv_names[0] if self.csv_names is not None else "train.csv",
             )
-            train_df.path = train_df.path.apply(
-                lambda x: os.path.join(self.dataset_path, x)
-            )
-            self.train_dataset = FaceForensicsDataset(
-                train_df.path,
-                train_df.label,
-                self.train_transforms,
-                self.target_transforms,
-                self.video_level,
-            )
+        )
+        train_df.path = train_df.path.apply(
+            lambda x: os.path.join(self.dataset_path, x)
+        )
+        self.train_dataset = FaceForensicsDataset(
+            train_df.path,
+            train_df.label,
+            self.train_transforms,
+            self.target_transforms,
+            self.video_level,
+        )
 
-            # VAL DATASET
-            val_df = pd.read_csv(
-                os.path.join(
-                    self.dataset_path,
-                    self.csv_names[1] if self.csv_names is not None else "val.csv",
-                )
+        # VAL DATASET
+        val_df = pd.read_csv(
+            os.path.join(
+                self.dataset_path,
+                self.csv_names[1] if self.csv_names is not None else "val.csv",
             )
-            val_df.path = val_df.path.apply(
-                lambda x: os.path.join(self.dataset_path, x)
+        )
+        val_df.path = val_df.path.apply(
+            lambda x: os.path.join(self.dataset_path, x)
+        )
+        self.val_dataset = FaceForensicsDataset(
+            val_df.path,
+            val_df.label,
+            self.validation_transforms,
+            self.target_transforms,
+            self.video_level,
+        )
+
+        # TEST DATASET
+        test_df = pd.read_csv(
+            os.path.join(
+                self.dataset_path,
+                self.csv_names[2] if self.csv_names is not None else "test.csv",
             )
-            self.val_dataset = FaceForensicsDataset(
-                val_df.path,
-                val_df.label,
-                self.validation_transforms,
-                self.target_transforms,
-                self.video_level,
-            )
-        if stage in (None, "test"):
-            # TEST DATASET
-            test_df = pd.read_csv(
-                os.path.join(
-                    self.dataset_path,
-                    self.csv_names[2] if self.csv_names is not None else "test.csv",
-                )
-            )
-            test_df.path = test_df.path.apply(
-                lambda x: os.path.join(self.dataset_path, x)
-            )
-            self.test_dataset = FaceForensicsDataset(
-                test_df.path,
-                test_df.label,
-                self.validation_transforms,
-                self.target_transforms,
-                self.video_level,
-            )
+        )
+        test_df.path = test_df.path.apply(
+            lambda x: os.path.join(self.dataset_path, x)
+        )
+        self.test_dataset = FaceForensicsDataset(
+            test_df.path,
+            test_df.label,
+            self.validation_transforms,
+            self.target_transforms,
+            self.video_level,
+        )
 
     def train_dataloader(self):
         # return train loader

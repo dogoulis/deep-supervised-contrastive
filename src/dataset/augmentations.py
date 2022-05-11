@@ -104,7 +104,7 @@ def get_df_training_augmentations(
                     A.transforms.Sharpen(alpha=(0, 0.2), lightness=(0, 0.2)),
                     A.geometric.Affine(scale=(0.9, 1.1), translate_percent=(0, 0.1))],
             n=2),
-            A.Resize(height=256, width=256, interpolation=cv2.INTER_CUBIC, always_apply=True),
+            A.Resize(height=input_size, width=input_size, interpolation=cv2.INTER_CUBIC),
             A.Normalize(),
             ToTensorV2(),
         ])

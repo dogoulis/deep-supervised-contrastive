@@ -11,7 +11,7 @@ from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
 
 
-class GANDataset(pl.LightningDataModule):
+class GANDataset:
     def __init__(
         self,
         datasets_path,
@@ -29,31 +29,22 @@ class GANDataset(pl.LightningDataModule):
         self.train_transforms = train_transforms
         self.validation_transforms = validation_transforms
 
-    def prepare_data(self):
-        # this gets called one time by only one gpu
-        # DO NOT assign state in here
-        pass
+        self.train_dataset = dataset2(
+            datasets_path=self.datasets_path,
+            csv_path=self.csv_paths[0],
+            transforms=self.train_transforms,
+        )
+        self.val_dataset = dataset2(
+            datasets_path=self.datasets_path,
+            csv_path=self.csv_paths[1],
+            transforms=self.validation_transforms,
+        )
 
-    def setup(self, stage=None):
-        # steps that should be done on every gpu
-        # like splitting data, applying transfroms
-        if stage in (None, "fit"):
-            self.train_dataset = dataset2(
-                datasets_path=self.datasets_path,
-                csv_path=self.csv_paths[0],
-                transforms=self.train_transforms,
-            )
-            self.val_dataset = dataset2(
-                datasets_path=self.datasets_path,
-                csv_path=self.csv_paths[1],
-                transforms=self.validation_transforms,
-            )
-        if stage in (None, "test"):
-            self.test_dataset = dataset2(
-                datasets_path=self.datasets_path,
-                csv_path=self.csv_paths[2],
-                transforms=self.validation_transforms,
-            )
+        self.test_dataset = dataset2(
+            datasets_path=self.datasets_path,
+            csv_path=self.csv_paths[2],
+            transforms=self.validation_transforms,
+        )
 
     def train_dataloader(self):
         return DataLoader(

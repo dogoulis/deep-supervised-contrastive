@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 import torch_optimizer
 from torch import nn, optim
 
-from src.dataset import CelebDF, FaceForensics, GANDataset
+from src.dataset import CelebDF, FaceForensics, GANDataset, OpenForensics
 from src.dataset import augmentations as aug
 
 
@@ -90,7 +90,9 @@ def config_datasets(
     num_workers=None,
     train_transforms=None,
     validation_transforms=None,
+    manipulations=None,
     video_level=False,
+    balance=False,
 ):
     """
     return pl datamodule that you can use to get dataloaders
@@ -103,9 +105,9 @@ def config_datasets(
             num_workers=num_workers,
             train_transforms=train_transforms,
             validation_transforms=validation_transforms,
-            manipulations=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures"],
+            manipulations=manipulations,
             video_level=video_level,
-            balance=True,
+            balance=balance,
         )
     elif dataset == "celebdf":
         dm = CelebDF.CelebDF(
@@ -116,6 +118,16 @@ def config_datasets(
             validation_transforms=validation_transforms,
             csv_names=["train_index.csv", "val_100.csv", "test_index.csv"],
             video_level=video_level,
+        )
+    elif dataset == 'of':
+        dm = OpenForensics.OpenForensics(
+            dataset_path=dataset_path,
+            folder_names=["Train_faces_sq1_3", "Val_faces_sq1_3", "Test-Dev_faces_sq1_3"],
+            batch_size=batch_size,
+            num_workers=num_workers,
+            train_transforms=train_transforms,
+            validation_transforms=validation_transforms,
+            balance=balance,
         )
     elif dataset == "gandataset":
         dm = GANDataset.GANDataset(
@@ -129,6 +141,4 @@ def config_datasets(
     else:
         return ValueError("DATASET NAME NOT FOUND")
     print("DM defined")
-    pl.seed_everything(1)
-    dm.prepare_data()
     return dm

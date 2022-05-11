@@ -3,7 +3,7 @@ import os
 import cv2
 import numpy as np
 import torch
-import torchdata.datapipes as dp
+from glob import glob
 from albumentations.pytorch import ToTensorV2
 from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
@@ -13,29 +13,30 @@ class OpenForensics:
     def __init__(
         self,
         dataset_path,
-        names,
+        folder_names,
         batch_size=32,
         num_workers=8,
         train_transforms=None,
         validation_transforms=None,
+        balance=False,
     ):
         self.dataset_path = dataset_path
-        self.names = names
+        self.folder_names = folder_names
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.train_transforms = train_transforms
         self.validation_transforms = validation_transforms
 
-        assert len(names) == 3, "NEED 3 FOLDER NAMES FOR TRAIN, VAL, TEST"
-        train_name, val_name, test_name = names
-        for i, name in enumerate(names):
+        assert len(folder_names) == 3, "NEED 3 FOLDER NAMES FOR TRAIN, VAL, TEST"
+        train_name, val_name, test_name = folder_names
+        for i, name in enumerate(folder_names):
             path = os.path.join(dataset_path, name)
             assert os.path.exists(path)
             assert os.path.exists(os.path.join(path, "real"))
             assert os.path.exists(os.path.join(path, "fake"))
 
-            real = list(dp.iter.FileLister(os.path.join(path, "real")))
-            fake = list(dp.iter.FileLister(os.path.join(path, "fake")))
+            real = glob(os.path.join(path, 'real', '*'))
+            fake = glob(os.path.join(path, 'fake', '*'))
             labels = [0] * len(real) + [1] * len(fake)
             if i == 0:
                 self.train_dataset = OpenForensicsDataset(

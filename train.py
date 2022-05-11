@@ -4,6 +4,7 @@ from random import shuffle, triangular
 
 
 import numpy as np
+import pytorch_lightning as pl
 import torch
 import wandb
 from torch import device, nn
@@ -63,11 +64,15 @@ def main():
         csv_paths=[args.train_path, args.validation_path, args.test_path],
         batch_size=args.batch_size,
         num_workers=args.num_workers,
+        manipulations=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures"],
         train_transforms=train_transforms,
         validation_transforms=validation_transforms,
         video_level=False,
+        balance=False
     )
-    dm.setup(stage="fit")
+    if isinstance(dm, pl.LightningDataModule):
+        dm.prepare_data()
+        dm.setup(stage="fit")
     train_dataloader = dm.train_dataloader()
     val_dataloader = dm.val_dataloader()
 
@@ -151,11 +156,10 @@ def train_epoch(
             # pass the batch through the classifier
             output = model.fc(model(x)).flatten()
             # mixed loss calculation
+            # get the log of barlow losses
             loss = (
-                criterion(output, y) + BarlowTwinsLoss(z_real) + BarlowTwinsLoss(z_fake)
+                criterion(output, y) + BarlowTwinsLoss(z_real).log() + BarlowTwinsLoss(z_fake).log()
             )
-            # get the logarithm of loss
-            loss = loss.log()
 
         # mixed-precesion if given in arguments
         if fp16_scaler:

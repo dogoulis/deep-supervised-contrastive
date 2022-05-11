@@ -118,7 +118,8 @@ def main():
         # e.g. better names for checkpoints and patience for early stopping
         if val_results["val_loss"] < min_loss:
             min_loss = val_results["val_loss"].copy()
-            torch.save(model.state_dict(), os.path.join(save_model_dir, "best-ckpt.pt"))
+            ckpt_name = f"{wandb.run.name}_epoch_{epoch}_val_loss_{val_results['val_loss']:.4f}.pt"
+            torch.save(model.state_dict(), os.path.join(save_model_dir, ckpt_name))
 
 
 def train_epoch(

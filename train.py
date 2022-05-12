@@ -1,4 +1,5 @@
 import argparse
+from ast import arg
 import os
 from random import shuffle, triangular
 
@@ -11,7 +12,7 @@ from torch import device, nn
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
-from src.losses import BarlowTwinsLoss
+from src.losses import BarlowTwinsLoss, supcon
 from src.model import Model
 from src.argparser_args import get_argparser
 from src.configurators import (
@@ -154,13 +155,33 @@ def train_epoch(
             # pass the real and fake batches through the backbone network and then through the projectors
             z_real = model.real_projector(model(real_class_batch))
             z_fake = model.fake_projector(model(fake_class_batch))
-            # pass the batch through the classifier
-            output = model.fc(model(x)).flatten()
+
+
+            # pass the batch through the classifier for each model:
+            if args.model == "resnet50":
+                output = model.fc(model(x)).flatten()
+            if args.model == "vit_small":
+                output = model.head(model(x)).flatten()
+            if args.model == "vit_small_21k":
+                output = model.head(model(x)).flatten()
             # mixed loss calculation
             # get the log of barlow losses
             loss = (
                 criterion(output, y) + BarlowTwinsLoss(z_real).log() + BarlowTwinsLoss(z_fake).log()
             )
+            if args.loss == 'supcon':
+                loss = supcon(torch.cat((z_fake, z_real), axis=0), torch.cat((y[fake_idxs], y[real_idxs]), axis=0))
+            elif args.loss == 'mixed':
+                loss = criterion(output, y) + BarlowTwinsLoss(z_real).log() \
+                    + BarlowTwinsLoss(z_fake).log() + supcon(torch.cat((z_fake, z_real), axis=0), torch.cat((y[fake_idxs], y[real_idxs]), axis=0))
+            elif args.loss == 'bce':
+                loss = criterion(output, y)
+            elif args.loss == 'barlow':
+                loss = BarlowTwinsLoss(z_real).log() + BarlowTwinsLoss(z_fake).log()
+            elif args.loss == 'barlow+bce':
+                loss = criterion(output, y) + BarlowTwinsLoss(z_real).log() + BarlowTwinsLoss(z_fake).log()
+            elif args.loss == 'supcon+bce':
+                loss = criterion(output, y) + supcon(torch.cat((z_fake, z_real), axis=0), torch.cat((y[fake_idxs], y[real_idxs]), axis=0))
 
         # mixed-precesion if given in arguments
         if fp16_scaler:
@@ -196,8 +217,14 @@ def validate_epoch(model, val_dataloader, args, criterion):
         x = x.to(args.device)
         y = y.to(args.device).unsqueeze(1)
 
-        outputs = model.fc(model(x))
-        loss = criterion(outputs, y)
+        if args.model == 'resnet50':
+            outputs = model.fc(model(x))
+            loss = criterion(outputs, y)
+        
+        if args.model == 'vit_small':
+            outputs = model.head(model(x))
+            loss = criterion(outputs, y)
+
 
         # loss calculation over batch
         running_loss.append(loss.cpu().numpy())

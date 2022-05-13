@@ -8,8 +8,17 @@ class Model(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.backbone = timm.create_model("resnet50", pretrained=True, num_classes=0)
-        self.fc = nn.Linear(2048, 1)
+        if config["model"] == 'resnet50':
+            self.backbone = timm.create_model('resnet50', pretrained=True, num_classes=0)
+            self.head = nn.Linear(2048, 1)
+        elif config["model"] == 'vit_small':
+            self.backbone = timm.create_model("vit_small_patch16_224", pretrained=True, num_classes=0)
+            self.head = nn.Linear(384, 1)
+        elif config["model"] == 'vit_small_21k':
+            self.backbone = timm.create_model("vit_small_patch16_224_in21k", pretrained=True, num_classes=0)
+            self.head = nn.Linear(384, 1)
+        else:
+            raise ValueError(f"Model {config['model']} is not supported")
 
         # projector:
         projector_layers = []

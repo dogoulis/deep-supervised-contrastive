@@ -4,6 +4,17 @@ import argparse
 def get_argparser():
     # CMD ARGUMENTS
     parser = argparse.ArgumentParser(description="Training arguments")
+    # LOSS
+    parser.add_argument(
+        '-ls',
+        '--loss',
+        type=str,
+        nargs="+",
+        required=False,
+        metavar='loss',
+        default=['bce', 'barlow'],
+        help='Flag for the usage of the Sup(ervised)Con(trastive)Loss'
+    )
     # WANDB
     parser.add_argument(
         "-ent",
@@ -58,7 +69,7 @@ def get_argparser():
         metavar="batch_size",
         help="Input batch size for training (default: 32).",
     )
-    ## OPTIMZER
+    # OPTIMZER
     parser.add_argument(
         "-opt",
         "--optimizer",
@@ -95,7 +106,7 @@ def get_argparser():
         metavar="momentum",
         help="Momentum of the optimizer (default: 0.).",
     )
-    ## SCHEDULE
+    # SCHEDULE
     parser.add_argument(
         "-sch",
         "--scheduler",
@@ -217,6 +228,15 @@ def get_argparser():
         help="test dataset path for csv.",
     )
     # MODEL DETAILS
+    parser.add_argument(
+        '-mdl',
+        '--model',
+        type=str,
+        required=True,
+        metavar='model',
+        choices=['resnet50', 'vit_small', 'vit_small_21k'],
+        help='Backbone model selection. Current options: "resnet50", "vit_small", "vit_small_21k".'
+    )
     parser.add_argument(
         "-proj",
         "--projector",

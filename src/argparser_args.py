@@ -6,11 +6,13 @@ def get_argparser():
     parser = argparse.ArgumentParser(description="Training arguments")
     # LOSS
     parser.add_argument(
+        '-ls',
         '--loss',
         type=str,
+        nargs="+",
         required=False,
         metavar='loss',
-        default='barlow',
+        default=['bce', 'barlow'],
         help='Flag for the usage of the Sup(ervised)Con(trastive)Loss'
     )
     # WANDB
@@ -227,10 +229,12 @@ def get_argparser():
     )
     # MODEL DETAILS
     parser.add_argument(
+        '-mdl',
         '--model',
         type=str,
         required=True,
         metavar='model',
+        choices=['resnet50', 'vit_small', 'vit_small_21k'],
         help='Backbone model selection. Current options: "resnet50", "vit_small", "vit_small_21k".'
     )
     parser.add_argument(

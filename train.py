@@ -90,7 +90,6 @@ def main():
         fp16_scaler = torch.cuda.amp.GradScaler()
 
     # checkpointing - directories
-    save_model_dir = args.save_model_path
     if not os.path.exists(args.save_model_path):
         os.makedirs(args.save_model_path)
     if not os.path.exists(args.save_backbone_path):
@@ -121,7 +120,7 @@ def main():
         if val_results["val_loss"] < min_loss:
             min_loss = val_results["val_loss"].copy()
             ckpt_name = f"{wandb.run.name}_epoch_{epoch}_val_loss_{val_results['val_loss']:.4f}.pt"
-            torch.save(model.state_dict(), os.path.join(save_model_dir, ckpt_name))
+            torch.save(model.state_dict(), os.path.join(args.save_model_path, ckpt_name))
 
 
 def train_epoch(

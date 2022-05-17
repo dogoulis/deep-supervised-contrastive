@@ -39,6 +39,7 @@ def main():
         save_code=True,
     )
     args.device = torch.device(args.device)
+    wandb.run.name = wandb.run.name + '_' + args.model + '_' + '_'.join(args.loss)
 
     # model definition
     model = Model(config=vars(args)).to(args.device)

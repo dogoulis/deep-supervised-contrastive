@@ -144,7 +144,6 @@ def main():
     test_results = validate_epoch(
         model, dataloader=test_dataloader, args=args, criterion=criterion, testing=True
     )
-    wandb.log(test_results)
 
 
 
@@ -243,11 +242,11 @@ def validate_epoch(model, dataloader, args, criterion, testing=False):
 
     y_true = torch.cat(y_true, 0).numpy()
     y_pred = torch.cat(y_pred, 0).numpy()
-    val_loss = np.mean(running_loss)
-    wandb.log({"validation-loss": val_loss}) if not testing else wandb.log({"test-loss": val_loss})
+    tot_loss = np.mean(running_loss)
+    wandb.log({"validation-loss": tot_loss}) if not testing else wandb.log({"test-loss": tot_loss})
     acc = 100.0 * np.mean(y_true == y_pred)
     wandb.log({"validation-accuracy": acc}) if not testing else wandb.log({"test-accuracy": acc})
-    return {"val_acc": acc, "val_loss": val_loss} if not testing else {"test_acc": acc, "test_loss": val_loss}
+    return {"val_acc": acc, "val_loss": tot_loss} if not testing else {"test_acc": acc, "test_loss": tot_loss}
 
 
 if __name__ == "__main__":

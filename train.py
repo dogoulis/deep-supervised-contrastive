@@ -2,6 +2,7 @@ import argparse
 from ast import arg
 import os
 from random import shuffle, triangular
+from glob import glob
 
 
 import numpy as np
@@ -40,6 +41,10 @@ def main():
     )
     args.device = torch.device(args.device)
     wandb.run.name = wandb.run.name + '_' + args.model + '_' + '_'.join(args.loss)
+    wandb.define_metric("train-epoch-loss", summary="min")
+    wandb.define_metric("train-steploss", summary="min")
+    wandb.define_metric('validation-loss', summary="min")
+    wandb.define_metric('validation-accuracy', summary="max")
 
     # model definition
     model = Model(config=vars(args)).to(args.device)
@@ -112,7 +117,7 @@ def main():
             epoch=epoch,
         )
         val_results = validate_epoch(
-            model, val_dataloader=val_dataloader, args=args, criterion=criterion
+            model, dataloader=val_dataloader, args=args, criterion=criterion
         )
 
         # TODO add more functionality here
@@ -121,6 +126,26 @@ def main():
             min_loss = val_results["val_loss"].copy()
             ckpt_name = f"{wandb.run.name}_epoch_{epoch}_val_loss_{val_results['val_loss']:.4f}.pt"
             torch.save(model.state_dict(), os.path.join(args.save_model_path, ckpt_name))
+    
+    # get best checkpoint
+    print("Loading best checkpoint...")
+    saved_ckpts = glob(os.path.join(args.save_model_path, wandb.run.name + '*.pt'))
+    saved_ckpts_epochs = [int(x.split('/')[-1].split('_')[-4]) for x in saved_ckpts]
+    best_idx = saved_ckpts_epochs.index(max(saved_ckpts_epochs))
+    best_ckpt = saved_ckpts[best_idx]
+
+    # load best checkpoint
+    del model
+    model = Model(config=vars(args)).to(args.device)
+    model.load_state_dict(torch.load(best_ckpt))
+
+    # test on test data and log results
+    test_dataloader = dm.test_dataloader()
+    test_results = validate_epoch(
+        model, dataloader=test_dataloader, args=args, criterion=criterion, testing=True
+    )
+    wandb.log(test_results)
+
 
 
 def train_epoch(
@@ -196,11 +221,11 @@ def train_epoch(
 
 # define validation logic
 @torch.no_grad()
-def validate_epoch(model, val_dataloader, args, criterion):
+def validate_epoch(model, dataloader, args, criterion, testing=False):
     model.eval()
 
     running_loss, y_true, y_pred = [], [], []
-    for x, id, y in val_dataloader:
+    for x, id, y in dataloader:
         x = x.to(args.device)
         y = y.to(args.device).unsqueeze(1)
 
@@ -219,10 +244,10 @@ def validate_epoch(model, val_dataloader, args, criterion):
     y_true = torch.cat(y_true, 0).numpy()
     y_pred = torch.cat(y_pred, 0).numpy()
     val_loss = np.mean(running_loss)
-    wandb.log({"validation-loss": val_loss})
+    wandb.log({"validation-loss": val_loss}) if not testing else wandb.log({"test-loss": val_loss})
     acc = 100.0 * np.mean(y_true == y_pred)
-    wandb.log({"validation-accuracy": acc})
-    return {"val_acc": acc, "val_loss": val_loss}
+    wandb.log({"validation-accuracy": acc}) if not testing else wandb.log({"test-accuracy": acc})
+    return {"val_acc": acc, "val_loss": val_loss} if not testing else {"test_acc": acc, "test_loss": val_loss}
 
 
 if __name__ == "__main__":

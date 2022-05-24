@@ -9,7 +9,6 @@ import pandas as pd
 import torch
 from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
-import albumentations as A
 
 
 class FaceForensics():

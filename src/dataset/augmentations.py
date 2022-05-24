@@ -1,6 +1,4 @@
-import albumentations as A
 import cv2
-from albumentations.pytorch.transforms import ToTensorV2
 import torchvision.transforms as TT
 
 

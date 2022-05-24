@@ -40,7 +40,8 @@ def main():
         save_code=True,
     )
     args.device = torch.device(args.device)
-    wandb.run.name = wandb.run.name + '_' + args.model + '_' + '_'.join(args.loss)
+    if wandb.run.name is not None:
+        wandb.run.name = wandb.run.name + '_' + args.model + '_' + '_'.join(args.loss)
     wandb.define_metric("train-epoch-loss", summary="min")
     wandb.define_metric("train-steploss", summary="min")
     wandb.define_metric('validation-loss', summary="min")

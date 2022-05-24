@@ -247,6 +247,15 @@ def get_argparser():
         metavar="projector",
         help="projector architecture",
     )
+    parser.add_argument(
+        "-hn",
+        "--num_head_neurons",
+        type=int,
+        default=1,
+        required=False,
+        metavar="num_head_neurons",
+        help="number of head neurons",
+    )
     # CHECKPOINT PATHS
     parser.add_argument(
         "-savem",

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-from albumentations.pytorch import ToTensorV2
+import torchvision.transforms as TT
 from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
 
@@ -101,7 +101,7 @@ class dataset2(Dataset):
             tr_img = self.transforms(image=image)
             image = tr_img["image"]
         else:
-            image = ToTensorV2(image)
+            image = TT.ToTensor(image)
         label = torch.tensor(label).float()
         id = self.imgs[idx]
         return image, id, label

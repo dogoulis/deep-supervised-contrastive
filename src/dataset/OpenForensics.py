@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import torch
 from glob import glob
-from albumentations.pytorch import ToTensorV2
+import torchvision.transforms as TT
 from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
 
@@ -124,7 +124,7 @@ class OpenForensicsDataset(Dataset):
             print(f"COULD NOT LOAD IMG: {self.imgs[idx]}")
 
         if self.transforms is None:
-            self.transforms = ToTensorV2()
+            self.transforms = TT.ToTensor()
         image = self.transforms(image=img)["image"]
 
         label = self.labels[idx]

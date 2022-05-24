@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-from albumentations.pytorch import ToTensorV2
+import torchvision.transforms as TT
 from src.dataset.utils import get_batch_sampler
 from torch.utils.data import DataLoader, Dataset
 
@@ -283,7 +283,7 @@ class CelebDFDataset(Dataset):
             print(f"COULD NOT LOAD IMG: {self.imgs[idx]}")
 
         if self.transforms is None:
-            self.transforms = ToTensorV2()
+            self.transforms = TT.ToTensor()
         image = self.transforms(image=img)["image"]
 
         label = self.labels[idx]

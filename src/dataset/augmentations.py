@@ -7,13 +7,13 @@ import torchvision.transforms as TT
 def get_gan_training_augmentations(aug_type, resize_size=256, crop_size=224):
     if "geometric" in aug_type:
         augmentations = [
-            A.augmentations.crops.transforms.RandomResizedCrop(
-                resize_size, resize_size, (0.95, 1.0), (0.8, 1.2)
+            TT.RandomResizedCrop(
+                resize_size, scale=(0.95, 1.0), ratio=(0.8, 1.2)
             )
         ]
     else:
         augmentations = [
-            A.augmentations.geometric.resize.Resize(resize_size, resize_size)
+            TT.Resize(resize_size)
         ]
 
     if "soft" in aug_type:
@@ -22,72 +22,70 @@ def get_gan_training_augmentations(aug_type, resize_size=256, crop_size=224):
         # add Wang augmentations pipeline transformed into albumentations:
         augmentations.extend(
             [
-                A.augmentations.transforms.GaussianBlur(sigma_limit=(0.0, 3.0), p=0.5),
-                A.augmentations.transforms.ImageCompression(
-                    quality_lower=30, quality_upper=100, p=0.5
-                ),
+                TT.RandomApply([
+                    TT.GaussianBlur(kernel_size=[3,5,7], sigma=(0.0, 3.0))
+                ], p=0.5)
+                # TODO
+                # TT.RandomApply([
+                #     TT.ImageCompression(quality_lower=30, quality_upper=100),
+                # ], p=0.5),
             ]
         )
     elif "oneof" in aug_type:
         augmentations.append(
-            A.OneOf(
-                [
-                    A.augmentations.transforms.GaussianBlur(
-                        sigma_limit=(0.0, 3.0), p=0.5
-                    ),
-                    A.augmentations.transforms.ImageCompression(
-                        quality_lower=30, quality_upper=100, p=0.5
-                    ),
-                    A.augmentations.transforms.ISONoise(p=0.5),
-                    A.augmentations.transforms.ColorJitter(0.4, 0.4, 0.0, 0.0, p=0.5),
-                ]
-            )
+            TT.RandomChoice([
+                TT.GaussianBlur(kernel_size=[3,5,7], sigma=(0.0, 3.0)),
+                # TT.ImageCompression(quality_lower=30, quality_upper=100), # TODO
+                # TT.ISONoise(intensity=0.1), # TODO
+                TT.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.0, hue=0.0),
+            ], p=[0.5, 0.5])
         )
     elif "strong" in aug_type:
         augmentations.append(
-            A.SomeOf(
-                [
-                    A.augmentations.transforms.GaussianBlur(
-                        sigma_limit=(0.0, 3.0), p=0.5
-                    ),
-                    A.augmentations.transforms.ImageCompression(
-                        quality_lower=30, quality_upper=100, p=0.5
-                    ),
-                    A.augmentations.transforms.ISONoise(p=0.5),
-                    A.augmentations.transforms.ColorJitter(0.4, 0.4, 0.0, 0.0, p=0.5),
-                ],
-                2,
-            )
+            TT.RandomChoice([
+                TT.GaussianBlur(kernel_size=[3,5,7], sigma=(0.0, 3.0)),
+                # TT.ImageCompression(quality_lower=30, quality_upper=100), # TODO
+                # TT.ISONoise(intensity=0.1), # TODO
+                TT.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.0, hue=0.0),
+            ], p=[0.5, 0.5])
+        )
+        augmentations.append(
+            TT.RandomChoice([
+                TT.GaussianBlur(kernel_size=[3,5,7], sigma=(0.0, 3.0)),
+                # TT.ImageCompression(quality_lower=30, quality_upper=100), # TODO
+                # TT.ISONoise(intensity=0.1), # TODO
+                TT.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.0, hue=0.0),
+            ], p=[0.5, 0.5])
         )
 
     return A.Compose(
         augmentations
         + [
-            A.augmentations.crops.transforms.RandomCrop(crop_size, crop_size),
-            A.augmentations.transforms.HorizontalFlip(),
-            A.Normalize(),
-            ToTensorV2(),
+            TT.RandomCrop(crop_size),
+            TT.HorizontalFlip(),
+            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            TT.ToTensor(),
         ]
     )
 
 
 def get_gan_validation_augmentations(resize_size=256, crop_size=224):
-    return A.Compose(
+    return TT.Compose(
         [
-            A.augmentations.geometric.resize.Resize(resize_size, resize_size),
-            A.augmentations.crops.transforms.CenterCrop(crop_size, crop_size),
-            A.Normalize(),
-            ToTensorV2(),
+            TT.Resize(resize_size),
+            TT.CenterCrop(crop_size),
+            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            TT.ToTensor(),
         ]
     )
 
 
 def get_df_validation_augmentations(input_size=300, interpolation=cv2.INTER_LINEAR):
-    return A.Compose(
+    return TT.Compose(
         [
-            A.Resize(input_size, input_size, interpolation=interpolation),
-            A.Normalize(),
-            ToTensorV2(),
+            TT.Resize(input_size, interpolation=interpolation),
+            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            TT.ToTensor(),
         ]
     )
 
@@ -96,17 +94,24 @@ def get_df_training_augmentations(
     df_aug=None, input_size=300, interpolation=cv2.INTER_LINEAR
 ):
     if df_aug == "rand":
-        return A.Compose([
-            A.core.composition.SomeOf([
-                    A.transforms.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2),
-                    A.geometric.rotate.Rotate(limit=30, interpolation=cv2.INTER_CUBIC),
-                    A.transforms.RandomGamma(),
-                    A.transforms.Sharpen(alpha=(0, 0.2), lightness=(0, 0.2)),
-                    A.geometric.Affine(scale=(0.9, 1.1), translate_percent=(0, 0.1))],
-            n=2),
-            A.Resize(height=input_size, width=input_size, interpolation=cv2.INTER_CUBIC),
-            A.Normalize(),
-            ToTensorV2(),
+        return TT.Compose([
+            TT.transforms.RandomChoice([
+                TT.ColorJitter(brightness=0.2, contrast=0.2),
+                TT.RandomRotation(30),
+                # TT.RandomGamma(gamma_limit=(80, 120)), # TODO
+                TT.RandomAdjustSharpness(0.2),
+                TT.RandomAffine(degrees=(0.9, 1.1), translate=(0, 0.1))
+            ]),
+            TT.RandomChoice([
+                TT.ColorJitter(brightness=0.2, contrast=0.2),
+                TT.RandomRotation(30),
+                # TT.RandomGamma(gamma_limit=(80, 120)), # TODO
+                TT.RandomAdjustSharpness(0.2),
+                TT.RandomAffine(degrees=(0.9, 1.1), translate=(0, 0.1))
+            ]), 
+            TT.Resize(input_size, interpolation=cv2.INTER_CUBIC),
+            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            TT.ToTensor(),
         ])
     elif df_aug == "validation":
         return get_df_validation_augmentations(input_size, interpolation)

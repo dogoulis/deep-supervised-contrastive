@@ -180,11 +180,11 @@ def train_epoch(
         optimizer.zero_grad()
         with torch.cuda.amp.autocast(fp16_scaler is not None):
             # pass the real and fake batches through the backbone network and then through the projectors
-            z_real = model.real_projector(model(real_class_batch))
-            z_fake = model.fake_projector(model(fake_class_batch))
+            z_real = model.module.real_projector(model(real_class_batch))
+            z_fake = model.module. fake_projector(model(fake_class_batch))
 
             # pass the batch through the classifier head
-            output = model.head(model(x)).flatten()
+            output = model.module.head(model(x)).flatten()
 
             # mixed loss calculation
             # get the log of barlow losses
@@ -231,7 +231,7 @@ def validate_epoch(model, dataloader, args, criterion, testing=False):
         x = x.to(args.device)
         y = y.to(args.device).unsqueeze(1)
 
-        outputs = model.head(model(x))
+        outputs = model.module.head(model(x))
         loss = criterion(outputs, y)
 
         # loss calculation over batch

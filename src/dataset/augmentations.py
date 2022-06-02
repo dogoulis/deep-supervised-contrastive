@@ -5,12 +5,14 @@ import torchvision.transforms as TT
 def get_gan_training_augmentations(aug_type, resize_size=256, crop_size=224):
     if "geometric" in aug_type:
         augmentations = [
+            TT.ToPILImage(),
             TT.RandomResizedCrop(
                 resize_size, scale=(0.95, 1.0), ratio=(0.8, 1.2)
             )
         ]
     else:
         augmentations = [
+            TT.ToPILImage(),
             TT.Resize(resize_size)
         ]
 
@@ -61,8 +63,8 @@ def get_gan_training_augmentations(aug_type, resize_size=256, crop_size=224):
         + [
             TT.RandomCrop(crop_size),
             TT.HorizontalFlip(),
-            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             TT.ToTensor(),
+            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ]
     )
 
@@ -70,10 +72,11 @@ def get_gan_training_augmentations(aug_type, resize_size=256, crop_size=224):
 def get_gan_validation_augmentations(resize_size=256, crop_size=224):
     return TT.Compose(
         [
+            TT.ToPILImage(),
             TT.Resize(resize_size),
             TT.CenterCrop(crop_size),
-            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             TT.ToTensor(),
+            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ]
     )
 
@@ -81,9 +84,10 @@ def get_gan_validation_augmentations(resize_size=256, crop_size=224):
 def get_df_validation_augmentations(input_size=300, interpolation=cv2.INTER_LINEAR):
     return TT.Compose(
         [
+            TT.ToPILImage(),
             TT.Resize(input_size, interpolation=interpolation),
-            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             TT.ToTensor(),
+            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ]
     )
 
@@ -93,6 +97,7 @@ def get_df_training_augmentations(
 ):
     if df_aug == "rand":
         return TT.Compose([
+            TT.ToPILImage(),
             TT.transforms.RandomChoice([
                 TT.ColorJitter(brightness=0.2, contrast=0.2),
                 TT.RandomRotation(30),
@@ -108,8 +113,8 @@ def get_df_training_augmentations(
                 TT.RandomAffine(degrees=(0.9, 1.1), translate=(0, 0.1))
             ]), 
             TT.Resize(input_size, interpolation=cv2.INTER_CUBIC),
-            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             TT.ToTensor(),
+            TT.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
     elif df_aug == "validation":
         return get_df_validation_augmentations(input_size, interpolation)

@@ -3,6 +3,7 @@ from ast import arg
 import os
 from random import shuffle, triangular
 from glob import glob
+import datetime
 
 
 import numpy as np
@@ -42,6 +43,9 @@ def main():
     args.device = torch.device(args.device)
     if wandb.run.name is not None:
         wandb.run.name = wandb.run.name + '_' + args.model + '_' + '_'.join(args.loss)
+    else:
+        date = datetime.date.today().strftime("%Y%m%d")
+        wandb.run.name = date + '_' + args.model + '_' + '_'.join(args.loss)
     wandb.define_metric("train-epoch-loss", summary="min")
     wandb.define_metric("train-steploss", summary="min")
     wandb.define_metric('validation-loss', summary="min")
@@ -132,6 +136,8 @@ def main():
     
     # get best checkpoint
     print("Loading best checkpoint...")
+    if wandb.run.name is None:
+        wandb.run.name = "None"
     saved_ckpts = glob(os.path.join(args.save_model_path, wandb.run.name + '*.pt'))
     saved_ckpts_epochs = [int(x.split('/')[-1].split('_')[-4]) for x in saved_ckpts]
     best_idx = saved_ckpts_epochs.index(max(saved_ckpts_epochs))

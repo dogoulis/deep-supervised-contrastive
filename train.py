@@ -48,7 +48,9 @@ def main():
     wandb.define_metric('validation-accuracy', summary="max")
 
     # model definition
-    model = Model(config=vars(args)).to(args.device)
+    torch.multiprocessing.set_sharing_strategy('file_system')
+    model = Model(config=vars(args))
+    model = torch.nn.DataParallel(model).to(args.device)
 
     # define training transforms/augmentations
     train_transforms = config_transforms(

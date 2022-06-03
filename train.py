@@ -149,8 +149,9 @@ def main():
 
     # load best checkpoint
     del model
-    model = Model(config=vars(args)).to(args.device)
+    model = Model(config=vars(args))
     model.load_state_dict(torch.load(best_ckpt))
+    model = torch.nn.DataParallel(model).to(args.device)
 
     # test on test data and log results
     test_dataloader = dm.test_dataloader()
